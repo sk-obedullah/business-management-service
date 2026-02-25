@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.jewelry.controller.ReportsController"
+      spacing="0" styleClass="content-area">
+
+    <!-- ── Header ─────────────────────────────────────────────── -->
+    <HBox styleClass="view-header" alignment="CENTER_LEFT" spacing="12">
+        <padding><Insets top="16" right="20" bottom="16" left="20"/></padding>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="📄 Reports" styleClass="view-title"/>
+            <Label text="Export business data to CSV — orders, revenue, inventory, customers"
+                   styleClass="label-muted"/>
+        </VBox>
+        <ProgressIndicator fx:id="loadingIndicator" prefWidth="22" prefHeight="22" visible="false"/>
+    </HBox>
+
+    <!-- ── Body ──────────────────────────────────────────────── -->
+    <HBox VBox.vgrow="ALWAYS" spacing="0">
+
+        <!-- Left: Configuration Panel -->
+        <VBox spacing="16" prefWidth="360"
+              style="-fx-background-color: #16213e; -fx-border-color: #e2b04a22; -fx-border-width:0 1 0 0;">
+            <padding><Insets top="24" right="24" bottom="24" left="24"/></padding>
+
+            <Label text="1. Choose Report Type" styleClass="form-label"/>
+            <ComboBox fx:id="cboReportType" maxWidth="1.7976931348623157E308"/>
+
+            <Separator/>
+
+            <Label text="2. Date Range (optional)" styleClass="form-label"/>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="From" styleClass="label-muted" style="-fx-font-size:11px;"/>
+                    <DatePicker fx:id="dpFrom" maxWidth="1.7976931348623157E308"/>
+                </VBox>
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="To" styleClass="label-muted" style="-fx-font-size:11px;"/>
+                    <DatePicker fx:id="dpTo" maxWidth="1.7976931348623157E308"/>
+                </VBox>
+            </HBox>
+
+            <Button text="✕ Clear Dates"
+                    onAction="#onClearDates"
+                    styleClass="btn-secondary"
+                    maxWidth="1.7976931348623157E308"/>
+
+            <Separator/>
+
+            <!-- Status filter — only visible for Order Report -->
+            <Label fx:id="lblStatusFilter" text="3. Filter by Status (Orders only)"
+                   styleClass="form-label"/>
+            <ComboBox fx:id="cboStatus" maxWidth="1.7976931348623157E308"/>
+
+            <Separator/>
+
+            <Region VBox.vgrow="ALWAYS"/>
+
+            <Button fx:id="btnExport" text="📥  Export to CSV"
+                    onAction="#onExport"
+                    styleClass="btn-primary"
+                    maxWidth="1.7976931348623157E308"
+                    style="-fx-font-size: 14px; -fx-padding: 12 0;"/>
+
+            <Label fx:id="lblResult" text="" wrapText="true"
+                   style="-fx-font-size: 12px;" alignment="CENTER"/>
+        </VBox>
+
+        <!-- Right: Preview Panel -->
+        <VBox VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" spacing="12">
+            <padding><Insets top="24" right="24" bottom="24" left="24"/></padding>
+
+            <Label text="Report Preview" styleClass="form-label"/>
+            <Label text="Configure the report on the left, then click 'Export to CSV' to save the file."
+                   styleClass="label-muted" style="-fx-font-size:11px;" wrapText="true"/>
+
+            <ListView fx:id="previewList" VBox.vgrow="ALWAYS"
+                      style="-fx-background-color:#0f3460; -fx-font-size:13px;
+                             -fx-border-color:#e2b04a33; -fx-border-width:1; -fx-border-radius:8;"/>
+
+            <!-- Quick guide -->
+            <VBox spacing="6"
+                  style="-fx-background-color:#16213e; -fx-padding:16; -fx-border-color:#3498db33;
+                         -fx-border-width:1; -fx-border-radius:8;">
+                <Label text="📋 Available Reports" style="-fx-text-fill:#3498db; -fx-font-weight:bold;"/>
+                <Label text="• Order Report — All orders with profit margin (filterable by date and status)"
+                       styleClass="label-muted" wrapText="true" style="-fx-font-size:11px;"/>
+                <Label text="• Revenue Summary — Monthly revenue and profit for completed orders"
+                       styleClass="label-muted" wrapText="true" style="-fx-font-size:11px;"/>
+                <Label text="• Product Inventory — Full stock list with cost, price, and stock value"
+                       styleClass="label-muted" wrapText="true" style="-fx-font-size:11px;"/>
+                <Label text="• Customer History — Order count and total spend per customer"
+                       styleClass="label-muted" wrapText="true" style="-fx-font-size:11px;"/>
+            </VBox>
+        </VBox>
+    </HBox>
+
+</VBox>

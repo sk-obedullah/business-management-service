@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.jewelry.controller.ProductListController"
+      spacing="0" styleClass="content-area">
+
+    <!-- ── Header Bar ──────────────────────────────────────────── -->
+    <HBox styleClass="view-header" alignment="CENTER_LEFT" spacing="12">
+        <padding><Insets top="16" right="20" bottom="16" left="20"/></padding>
+
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="💎 Products" styleClass="view-title"/>
+            <Label text="Manage your jewellery catalogue" styleClass="label-muted"/>
+        </VBox>
+
+        <!-- Status labels -->
+        <Label fx:id="lblLowStock" styleClass="badge-danger" visible="false"/>
+        <Label fx:id="lblStatus"   styleClass="label-muted"/>
+
+        <ProgressIndicator fx:id="loadingIndicator" prefWidth="24" prefHeight="24" visible="false"/>
+    </HBox>
+
+    <!-- ── Toolbar ────────────────────────────────────────────── -->
+    <HBox styleClass="toolbar" alignment="CENTER_LEFT" spacing="8">
+        <padding><Insets top="10" right="20" bottom="10" left="20"/></padding>
+
+        <TextField fx:id="searchField"
+                   promptText="🔍  Search by name, SKU, category or metal…"
+                   styleClass="search-field"
+                   HBox.hgrow="ALWAYS"
+                   maxWidth="400"/>
+
+        <Region HBox.hgrow="ALWAYS"/>
+
+        <Button fx:id="btnRefresh" text="↻ Refresh"
+                onAction="#onRefresh" styleClass="btn-secondary"/>
+        <Button fx:id="btnAdd"     text="＋ Add Product"
+                onAction="#onAdd"    styleClass="btn-primary"/>
+        <Button fx:id="btnEdit"    text="✎ Edit"
+                onAction="#onEdit"   styleClass="btn-secondary"/>
+        <Button fx:id="btnDelete"  text="✕ Delete"
+                onAction="#onDelete" styleClass="btn-danger"/>
+    </HBox>
+
+    <!-- ── Table ─────────────────────────────────────────────── -->
+    <TableView fx:id="productTable" VBox.vgrow="ALWAYS" styleClass="table-view">
+        <columns>
+            <TableColumn fx:id="colName"     text="Product Name"  prefWidth="200"/>
+            <TableColumn fx:id="colSku"      text="SKU"           prefWidth="130"/>
+            <TableColumn fx:id="colCategory" text="Category"      prefWidth="100"/>
+            <TableColumn fx:id="colMetal"    text="Metal"         prefWidth="90"/>
+            <TableColumn fx:id="colPurity"   text="Purity"        prefWidth="70"/>
+            <TableColumn fx:id="colCost"     text="Cost (₹)"      prefWidth="100"/>
+            <TableColumn fx:id="colSell"     text="Sell (₹)"      prefWidth="100"/>
+            <TableColumn fx:id="colMargin"   text="Margin %"      prefWidth="90"/>
+            <TableColumn fx:id="colQty"      text="Qty"           prefWidth="60"/>
+        </columns>
+        <placeholder>
+            <Label text="No products found. Click '＋ Add Product' to get started."
+                   styleClass="label-muted"/>
+        </placeholder>
+    </TableView>
+
+</VBox>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.jewelry.controller.MainLayoutController"
+            styleClass="root-pane">
+
+    <!-- ╔══════════╗ -->
+    <!-- ║  TOP BAR ║ -->
+    <!-- ╚══════════╝ -->
+    <top>
+        <VBox styleClass="top-bar">
+            <MenuBar styleClass="menu-bar">
+
+                <Menu text="File" styleClass="menu">
+                    <MenuItem text="Exit" onAction="#onExit"/>
+                </Menu>
+
+                <Menu text="Products" styleClass="menu">
+                    <MenuItem text="Manage Products" onAction="#onProducts"/>
+                </Menu>
+
+                <Menu text="Customers" styleClass="menu">
+                    <MenuItem text="Manage Customers" onAction="#onCustomers"/>
+                </Menu>
+
+                <Menu text="Orders" styleClass="menu">
+                    <MenuItem text="Manage Orders" onAction="#onOrders"/>
+                </Menu>
+
+                <Menu text="Reports" styleClass="menu">
+                    <MenuItem text="Generate Reports" onAction="#onReports"/>
+                </Menu>
+
+            </MenuBar>
+
+            <!-- Navigation ribbon -->
+            <HBox styleClass="nav-ribbon" spacing="8">
+                <padding><Insets top="8" right="16" bottom="8" left="16"/></padding>
+                <Button fx:id="btnNavDashboard" text="🏠 Dashboard"  onAction="#onDashboard"  styleClass="nav-btn"/>
+                <Button fx:id="btnNavProducts"  text="💎 Products"   onAction="#onProducts"   styleClass="nav-btn"/>
+                <Button fx:id="btnNavCustomers" text="👤 Customers"  onAction="#onCustomers"  styleClass="nav-btn"/>
+                <Button fx:id="btnNavOrders"    text="📦 Orders"     onAction="#onOrders"     styleClass="nav-btn"/>
+                <Button fx:id="btnNavReports"   text="📊 Reports"    onAction="#onReports"    styleClass="nav-btn"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- ╔══════════════╗ -->
+    <!-- ║ CONTENT AREA ║ -->
+    <!-- ╚══════════════╝ -->
+    <center>
+        <StackPane fx:id="contentArea" styleClass="content-area">
+            <!-- Child FXML views are swapped here dynamically -->
+            <Label text="Welcome to Jewelry Management System"
+                   styleClass="welcome-label"/>
+        </StackPane>
+    </center>
+
+    <!-- ╔════════════╗ -->
+    <!-- ║ STATUS BAR ║ -->
+    <!-- ╚════════════╝ -->
+    <bottom>
+        <HBox styleClass="status-bar">
+            <padding><Insets top="4" right="16" bottom="4" left="16"/></padding>
+            <Label text="Ready" styleClass="status-label"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

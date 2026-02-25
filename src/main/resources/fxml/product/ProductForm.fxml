@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.jewelry.controller.ProductFormController"
+      spacing="0" styleClass="root-pane" VBox.vgrow="ALWAYS">
+
+    <!-- ── Header ─────────────────────────────────────── -->
+    <HBox styleClass="view-header" alignment="CENTER_LEFT" spacing="16">
+        <padding><Insets top="16" right="20" bottom="16" left="20"/></padding>
+        <Button text="⬅ Back" onAction="#onCancel" styleClass="btn-secondary"/>
+        <Label fx:id="lblTitle" text="Add New Product" styleClass="view-title"/>
+    </HBox>
+
+    <!-- ── Form Body ─────────────────────────────────────────── -->
+    <ScrollPane fitToWidth="true" styleClass="form-scroll" VBox.vgrow="ALWAYS">
+        <padding><Insets top="4" right="4" bottom="4" left="4"/></padding>
+
+        <GridPane hgap="16" vgap="14" styleClass="form-grid">
+            <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
+
+            <!-- Row 0: Name | SKU -->
+            <Label text="Product Name *" styleClass="form-label"
+                   GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+            <TextField fx:id="txtName" promptText="e.g. 18K Gold Ring"
+                       GridPane.columnIndex="0" GridPane.rowIndex="1"
+                       GridPane.hgrow="ALWAYS"/>
+
+            <Label text="SKU *" styleClass="form-label"
+                   GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+            <TextField fx:id="txtSku" promptText="e.g. RING-AU-018K-001"
+                       GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+            <!-- Row 2: Category | Metal -->
+            <Label text="Category *" styleClass="form-label"
+                   GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+            <ComboBox fx:id="cboCategory" maxWidth="1.7976931348623157E308"
+                      GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+
+            <Label text="Metal *" styleClass="form-label"
+                   GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+            <ComboBox fx:id="cboMetal" maxWidth="1.7976931348623157E308"
+                      GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+            <!-- Row 4: Purity | Weight -->
+            <Label text="Purity" styleClass="form-label"
+                   GridPane.columnIndex="0" GridPane.rowIndex="4"/>
+            <TextField fx:id="txtPurity" promptText="e.g. 18K, 22K, 925"
+                       GridPane.columnIndex="0" GridPane.rowIndex="5"/>
+
+            <Label text="Weight (grams)" styleClass="form-label"
+                   GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+            <TextField fx:id="txtWeight" promptText="e.g. 5.25"
+                       GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+
+            <!-- Row 6: Cost | Selling Price -->
+            <Label text="Cost Price (₹) *" styleClass="form-label"
+                   GridPane.columnIndex="0" GridPane.rowIndex="6"/>
+            <TextField fx:id="txtCostPrice" promptText="e.g. 15000"
+                       GridPane.columnIndex="0" GridPane.rowIndex="7"/>
+
+            <Label text="Selling Price (₹) *" styleClass="form-label"
+                   GridPane.columnIndex="1" GridPane.rowIndex="6"/>
+            <TextField fx:id="txtSellingPrice" promptText="e.g. 22000"
+                       GridPane.columnIndex="1" GridPane.rowIndex="7"/>
+
+            <!-- Row 8: Quantity -->
+            <Label text="Quantity On Hand" styleClass="form-label"
+                   GridPane.columnIndex="0" GridPane.rowIndex="8"/>
+            <TextField fx:id="txtQuantity" promptText="0"
+                       GridPane.columnIndex="0" GridPane.rowIndex="9"/>
+
+            <!-- Row 10: Description (full width) -->
+            <Label text="Description" styleClass="form-label"
+                   GridPane.columnIndex="0" GridPane.rowIndex="10"
+                   GridPane.columnSpan="2"/>
+            <TextArea fx:id="txtDescription" promptText="Optional product notes…"
+                      prefRowCount="3" wrapText="true"
+                      GridPane.columnIndex="0" GridPane.rowIndex="11"
+                      GridPane.columnSpan="2" GridPane.hgrow="ALWAYS"/>
+
+            <!-- Column constraints -->
+            <columnConstraints>
+                <ColumnConstraints hgrow="ALWAYS" percentWidth="50"/>
+                <ColumnConstraints hgrow="ALWAYS" percentWidth="50"/>
+            </columnConstraints>
+
+        </GridPane>
+    </ScrollPane>
+
+    <!-- ── Error Banner ─────────────────────────────────────── -->
+    <Label fx:id="lblError" text="" styleClass="error-label" wrapText="true" visible="false">
+        <padding><Insets top="4" right="24" bottom="4" left="24"/></padding>
+    </Label>
+
+    <!-- ── Footer Buttons ───────────────────────────────────── -->
+    <HBox alignment="CENTER_RIGHT" spacing="12">
+        <padding><Insets top="16" right="24" bottom="16" left="24"/></padding>
+        <Button fx:id="btnCancel" text="Cancel"  onAction="#onCancel" styleClass="btn-secondary"/>
+        <Button fx:id="btnSave"   text="Save"    onAction="#onSave"   styleClass="btn-primary"
+                defaultButton="true"/>
+    </HBox>
+
+</VBox>

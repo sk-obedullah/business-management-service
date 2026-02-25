@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.jewelry.controller.CustomerFormController"
+      spacing="0" styleClass="root-pane" VBox.vgrow="ALWAYS">
+
+    <!-- ── Header ─────────────────────────────────────── -->
+    <HBox styleClass="view-header" alignment="CENTER_LEFT" spacing="16">
+        <padding><Insets top="16" right="20" bottom="16" left="20"/></padding>
+        <Button text="⬅ Back" onAction="#onCancel" styleClass="btn-secondary"/>
+        <Label fx:id="lblTitle" text="Add New Customer" styleClass="view-title"/>
+    </HBox>
+
+    <!-- ── Form Body ─────────────────────────────────────────── -->
+    <ScrollPane fitToWidth="true" styleClass="form-scroll" VBox.vgrow="ALWAYS">
+        <padding><Insets top="4" right="4" bottom="4" left="4"/></padding>
+
+        <GridPane hgap="16" vgap="14" styleClass="form-grid">
+            <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
+
+            <!-- Row 0: First Name | Last Name -->
+            <Label text="First Name *" styleClass="form-label"
+                   GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+            <TextField fx:id="txtFirstName" promptText="e.g. Priya"
+                       GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+
+            <Label text="Last Name *" styleClass="form-label"
+                   GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+            <TextField fx:id="txtLastName" promptText="e.g. Sharma"
+                       GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+            <!-- Row 2: Email | Phone -->
+            <Label text="Email Address *" styleClass="form-label"
+                   GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+            <TextField fx:id="txtEmail" promptText="e.g. priya@example.com"
+                       GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+
+            <Label text="Phone" styleClass="form-label"
+                   GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+            <TextField fx:id="txtPhone" promptText="e.g. +91 98765 43210"
+                       GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+            <!-- Row 4: Address (full width) -->
+            <Label text="Address" styleClass="form-label"
+                   GridPane.columnIndex="0" GridPane.rowIndex="4"
+                   GridPane.columnSpan="2"/>
+            <TextArea fx:id="txtAddress" promptText="Street, City, State, PIN…"
+                      prefRowCount="2" wrapText="true"
+                      GridPane.columnIndex="0" GridPane.rowIndex="5"
+                      GridPane.columnSpan="2"/>
+
+            <!-- Row 6: Notes (full width) -->
+            <Label text="Notes" styleClass="form-label"
+                   GridPane.columnIndex="0" GridPane.rowIndex="6"
+                   GridPane.columnSpan="2"/>
+            <TextArea fx:id="txtNotes" promptText="VIP, preferences, referral source…"
+                      prefRowCount="2" wrapText="true"
+                      GridPane.columnIndex="0" GridPane.rowIndex="7"
+                      GridPane.columnSpan="2"/>
+
+            <!-- Column constraints -->
+            <columnConstraints>
+                <ColumnConstraints hgrow="ALWAYS" percentWidth="50"/>
+                <ColumnConstraints hgrow="ALWAYS" percentWidth="50"/>
+            </columnConstraints>
+
+        </GridPane>
+    </ScrollPane>
+
+    <!-- ── Error Banner ─────────────────────────────────────── -->
+    <Label fx:id="lblError" text="" styleClass="error-label" wrapText="true" visible="false">
+        <padding><Insets top="4" right="24" bottom="4" left="24"/></padding>
+    </Label>
+
+    <!-- ── Footer ────────────────────────────────────────────── -->
+    <HBox alignment="CENTER_RIGHT" spacing="12">
+        <padding><Insets top="16" right="24" bottom="16" left="24"/></padding>
+        <Button fx:id="btnCancel" text="Cancel" onAction="#onCancel" styleClass="btn-secondary"/>
+        <Button fx:id="btnSave"   text="Save"   onAction="#onSave"   styleClass="btn-primary"
+                defaultButton="true"/>
+    </HBox>
+
+</VBox>

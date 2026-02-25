@@ -1,0 +1,304 @@
+package com.jewelry.controller;
+
+import com.jewelry.config.AppContext;
+import com.jewelry.dto.CustomerDTO;
+import com.jewelry.entity.Customer;
+import com.jewelry.exception.AppException;
+import com.jewelry.service.CustomerService;
+import com.jewelry.util.CustomerMapper;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
+import javafx.concurrent.Task;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.fxml.Initializable;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.ResourceBundle;
+
+/**
+ * Controller for the Customer management screen (CustomerList.fxml).
+ *
+ * <p>
+ * Responsibilities:
+ * <ul>
+ * <li>Asynchronous customer loading via {@link Task} — UI never blocks</li>
+ * <li>Live search across name, email, and phone via {@link FilteredList}</li>
+ * <li>Open Add / Edit modal dialog ({@link CustomerFormController})</li>
+ * <li>Delete with confirmation alert</li>
+ * <li>Customer count badge in the header</li>
+ * </ul>
+ *
+ * <p>
+ * <strong>Architecture rule:</strong> No SQL or business logic here.
+ * All operations delegate to {@link CustomerService}.
+ */
+public class CustomerListController implements Initializable {
+
+    private static final Logger log = LoggerFactory.getLogger(CustomerListController.class);
+
+    // ── FXML Bindings ────────────────────────────────────────────────────────
+    @FXML
+    private TextField searchField;
+    @FXML
+    private Button btnAdd;
+    @FXML
+    private Button btnEdit;
+    @FXML
+    private Button btnDelete;
+    @FXML
+    private Button btnRefresh;
+    @FXML
+    private Label lblStatus;
+    @FXML
+    private Label lblTotal;
+    @FXML
+    private ProgressIndicator loadingIndicator;
+
+    // ── Table & Columns ──────────────────────────────────────────────────────
+    @FXML
+    private TableView<CustomerDTO> customerTable;
+    @FXML
+    private TableColumn<CustomerDTO, String> colFullName;
+    @FXML
+    private TableColumn<CustomerDTO, String> colEmail;
+    @FXML
+    private TableColumn<CustomerDTO, String> colPhone;
+    @FXML
+    private TableColumn<CustomerDTO, String> colAddress;
+    @FXML
+    private TableColumn<CustomerDTO, String> colNotes;
+    @FXML
+    private TableColumn<CustomerDTO, Void> colOrders;
+
+    // ── State ────────────────────────────────────────────────────────────────
+    private final CustomerService customerService;
+    private final ObservableList<CustomerDTO> masterList = FXCollections.observableArrayList();
+    private FilteredList<CustomerDTO> filteredList;
+
+    public CustomerListController() {
+        this.customerService = AppContext.getInstance().getCustomerService();
+    }
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        configureColumns();
+        configureSearch();
+        configureSelectionBindings();
+        loadCustomersAsync();
+    }
+
+    // ── Column Setup ─────────────────────────────────────────────────────────
+
+    private void configureColumns() {
+        colFullName.setCellValueFactory(new PropertyValueFactory<>("fullName"));
+        colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
+        colPhone.setCellValueFactory(new PropertyValueFactory<>("phone"));
+        colAddress.setCellValueFactory(new PropertyValueFactory<>("address"));
+        colNotes.setCellValueFactory(new PropertyValueFactory<>("notes"));
+
+        // Wrap long text in address / notes columns
+        colAddress.setCellFactory(tc -> wrapCell());
+        colNotes.setCellFactory(tc -> wrapCell());
+
+        // Action column for viewing orders
+        colOrders.setCellFactory(tc -> new TableCell<>() {
+            private final Button btn = new Button("View Orders");
+            {
+                btn.getStyleClass().add("btn-secondary");
+                btn.setStyle("-fx-padding: 2 8; -fx-font-size: 11px;");
+                btn.setOnAction(e -> {
+                    CustomerDTO customer = getTableView().getItems().get(getIndex());
+                    openOrdersForCustomer(customer);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : btn);
+            }
+        });
+
+        customerTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+    }
+
+    private TableCell<CustomerDTO, String> wrapCell() {
+        return new TableCell<>() {
+            {
+                setWrapText(true);
+            }
+
+            @Override
+            protected void updateItem(String value, boolean empty) {
+                super.updateItem(value, empty);
+                setText(empty ? null : value);
+            }
+        };
+    }
+
+    // ── Search / Filter ──────────────────────────────────────────────────────
+
+    private void configureSearch() {
+        filteredList = new FilteredList<>(masterList, p -> true);
+
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            filteredList.setPredicate(dto -> {
+                if (newVal == null || newVal.isBlank())
+                    return true;
+                String lower = newVal.toLowerCase();
+                return (dto.getFullName() != null && dto.getFullName().toLowerCase().contains(lower))
+                        || (dto.getEmail() != null && dto.getEmail().toLowerCase().contains(lower))
+                        || (dto.getPhone() != null && dto.getPhone().contains(newVal));
+            });
+            updateStatus();
+        });
+
+        SortedList<CustomerDTO> sortedList = new SortedList<>(filteredList);
+        sortedList.comparatorProperty().bind(customerTable.comparatorProperty());
+        customerTable.setItems(sortedList);
+    }
+
+    // ── Selection Bindings ───────────────────────────────────────────────────
+
+    private void configureSelectionBindings() {
+        btnEdit.disableProperty().bind(
+                customerTable.getSelectionModel().selectedItemProperty().isNull());
+        btnDelete.disableProperty().bind(
+                customerTable.getSelectionModel().selectedItemProperty().isNull());
+    }
+
+    // ── Async Data Loading ───────────────────────────────────────────────────
+
+    private void loadCustomersAsync() {
+        loadingIndicator.setVisible(true);
+        lblStatus.setText("Loading customers...");
+
+        Task<List<Customer>> task = new Task<>() {
+            @Override
+            protected List<Customer> call() {
+                return customerService.findAll();
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            List<Customer> entities = task.getValue();
+            masterList.setAll(entities.stream().map(CustomerMapper::toDTO).toList());
+            updateStatus();
+            loadingIndicator.setVisible(false);
+            log.info("Loaded {} customers", masterList.size());
+        });
+
+        task.setOnFailed(e -> {
+            loadingIndicator.setVisible(false);
+            lblStatus.setText("Error loading customers");
+            log.error("Failed to load customers", task.getException());
+            showError("Load Error", "Failed to load customers: " + task.getException().getMessage());
+        });
+
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    // ── FXML Actions ─────────────────────────────────────────────────────────
+
+    @FXML
+    private void onAdd() {
+        openFormDialog(null);
+    }
+
+    @FXML
+    private void onEdit() {
+        CustomerDTO selected = customerTable.getSelectionModel().getSelectedItem();
+        if (selected != null)
+            openFormDialog(selected);
+    }
+
+    @FXML
+    private void onDelete() {
+        CustomerDTO selected = customerTable.getSelectionModel().getSelectedItem();
+        if (selected == null)
+            return;
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Confirm Delete");
+        confirm.setHeaderText("Delete customer: " + selected.getFullName() + "?");
+        confirm.setContentText(
+                "Email: " + selected.getEmail()
+                        + "\n\nAll orders for this customer will be blocked from deletion. "
+                        + "Ensure no active orders exist before deleting.");
+        applyDialogStyle(confirm);
+
+        Optional<ButtonType> result = confirm.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try {
+                customerService.deleteCustomer(selected.getId());
+                masterList.removeIf(dto -> dto.getId().equals(selected.getId()));
+                updateStatus();
+                log.info("Deleted customer id={}", selected.getId());
+            } catch (AppException ex) {
+                showError("Delete Failed", ex.getMessage());
+            }
+        }
+    }
+
+    @FXML
+    private void onRefresh() {
+        searchField.clear();
+        loadCustomersAsync();
+    }
+
+    // ── Dialog ───────────────────────────────────────────────────────────────
+
+    private void openFormDialog(CustomerDTO dto) {
+        MainLayoutController.navigateTo("/fxml/customer/CustomerForm.fxml", (CustomerFormController controller) -> {
+            controller.initForEdit(dto);
+        });
+    }
+
+    private void openOrdersForCustomer(CustomerDTO customer) {
+        MainLayoutController.navigateTo("/fxml/order/OrderList.fxml", (OrderListController controller) -> {
+            controller.setSearchQuery(customer.getPhone());
+        });
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private void updateStatus() {
+        int total = masterList.size();
+        int filtered = filteredList.size();
+        lblStatus.setText(String.format("Showing %d of %d customers", filtered, total));
+        lblTotal.setText(total + " total");
+    }
+
+    private void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        applyDialogStyle(alert);
+        alert.showAndWait();
+    }
+
+    private void applyDialogStyle(Alert alert) {
+        alert.getDialogPane().getStylesheets().add(
+                Objects.requireNonNull(
+                        getClass().getResource("/css/theme.css")).toExternalForm());
+        alert.getDialogPane().getStyleClass().add("root-pane");
+    }
+}

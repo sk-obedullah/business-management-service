@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.jewelry.controller.OrderFormController"
+      spacing="0" styleClass="root-pane" VBox.vgrow="ALWAYS">
+
+    <!-- ── Header ─────────────────────────────────────── -->
+    <HBox styleClass="view-header" alignment="CENTER_LEFT" spacing="16">
+        <padding><Insets top="16" right="20" bottom="16" left="20"/></padding>
+        <Button text="⬅ Back" onAction="#onCancelDialog" styleClass="btn-secondary"/>
+        <VBox spacing="2">
+            <Label fx:id="lblTitle" text="📦 New Order" styleClass="view-title"/>
+            <Label fx:id="lblSubtitle" text="Select a customer, add products, then place the order."
+                   styleClass="label-muted" style="-fx-font-size: 12px;"/>
+        </VBox>
+    </HBox>
+
+    <!-- ── Body ──────────────────────────────────────────────── -->
+    <HBox VBox.vgrow="ALWAYS" spacing="0">
+
+        <!-- Left panel: customer, product picker, notes, discount -->
+        <VBox spacing="14" prefWidth="320" styleClass="form-grid">
+            <padding><Insets top="20" right="16" bottom="20" left="24"/></padding>
+
+            <!-- Customer -->
+            <HBox alignment="BOTTOM_LEFT" spacing="8">
+                <Label text="Customer *" styleClass="form-label"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="btnNewCustomer" text="＋ New" onAction="#onNewCustomer" 
+                        style="-fx-font-size: 10px; -fx-padding: 3 8;" styleClass="btn-secondary"/>
+            </HBox>
+            <TextField fx:id="txtCustomerSearch" promptText="🔍 Search (name or phone)…" styleClass="search-field"/>
+            <ComboBox fx:id="cboCustomer" maxWidth="1.7976931348623157E308"/>
+
+            <!-- Read-only Customer Info (Hidden by default, shown in View mode) -->
+            <VBox fx:id="customerInfoCard" spacing="6" visible="false" managed="false"
+                  style="-fx-background-color: rgba(255,255,255,0.03); -fx-padding: 12; -fx-background-radius: 6; -fx-border-color: rgba(255,255,255,0.1); -fx-border-radius: 6;">
+                <Label fx:id="lblCustomerName"    text="" style="-fx-font-weight: bold; -fx-text-fill: white;"/>
+                <Label fx:id="lblCustomerPhone"   text="" styleClass="label-muted" style="-fx-font-size: 11px;"/>
+                <Label fx:id="lblCustomerEmail"   text="" styleClass="label-muted" style="-fx-font-size: 11px;"/>
+                <Label fx:id="lblCustomerAddress" text="" styleClass="label-muted" style="-fx-font-size: 11px;" wrapText="true"/>
+            </VBox>
+
+            <Separator/>
+
+            <!-- Product Picker -->
+            <VBox fx:id="addProductSection" spacing="14">
+                <Label text="Add Product" styleClass="form-label"/>
+
+                <Label text="Product" styleClass="form-label"/>
+                <ComboBox fx:id="cboProduct" maxWidth="1.7976931348623157E308"/>
+
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label text="Quantity" styleClass="form-label"/>
+                        <TextField fx:id="txtQuantity" promptText="e.g. 2" maxWidth="80"/>
+                    </VBox>
+                    <VBox spacing="4" alignment="BOTTOM_LEFT">
+                        <Label fx:id="lblStock" text="" style="-fx-font-size:11px;"/>
+                        <Label fx:id="lblUnitPrice" text="" style="-fx-font-size:11px; -fx-text-fill:#e2b04a;"/>
+                    </VBox>
+                </HBox>
+
+                <Button fx:id="btnAddItem" text="＋ Add to Order" onAction="#onAddItem"
+                        styleClass="btn-secondary" maxWidth="1.7976931348623157E308"/>
+
+                <Separator/>
+            </VBox>
+
+            <!-- Discount -->
+            <Label text="Discount (₹)" styleClass="form-label"/>
+            <TextField fx:id="txtDiscount" promptText="0.00"/>
+
+            <!-- Notes -->
+            <Label text="Order Notes" styleClass="form-label"/>
+            <TextArea fx:id="txtNotes" prefRowCount="3" wrapText="true"
+                      promptText="Special instructions, references…"/>
+
+            <Region VBox.vgrow="ALWAYS"/>
+
+            <!-- Running total -->
+            <Label fx:id="lblOrderTotal" text="Subtotal: ₹0   |   Net: ₹0"
+                   style="-fx-text-fill: #e2b04a; -fx-font-weight: bold; -fx-font-size: 12px;"
+                   wrapText="true"/>
+        </VBox>
+
+        <!-- Right panel: line-item table -->
+        <VBox VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" spacing="0"
+              style="-fx-border-color: #0f3460; -fx-border-width: 0 0 0 1;">
+            <padding><Insets top="20" right="24" bottom="0" left="16"/></padding>
+
+            <Label text="Order Items" styleClass="form-label"/>
+            <Region prefHeight="6"/>
+
+            <TableView fx:id="lineTable" VBox.vgrow="ALWAYS" styleClass="table-view">
+                <columns>
+                    <TableColumn fx:id="colProduct"   text="Product"    prefWidth="180"/>
+                    <TableColumn fx:id="colSku"       text="SKU"        prefWidth="120"/>
+                    <TableColumn fx:id="colQty"       text="Qty"        prefWidth="50"/>
+                    <TableColumn fx:id="colUnitPrice" text="Unit (₹)"   prefWidth="100"/>
+                    <TableColumn fx:id="colLineTotal" text="Total (₹)"  prefWidth="110"/>
+                    <TableColumn fx:id="colRemove"    text=""           prefWidth="50"/>
+                </columns>
+                <placeholder>
+                    <Label text="No items yet — pick a product and click '＋ Add to Order'"
+                           styleClass="label-muted"/>
+                </placeholder>
+            </TableView>
+        </VBox>
+    </HBox>
+
+    <!-- ── Error Banner ─────────────────────────────────────── -->
+    <Label fx:id="lblError" text="" styleClass="error-label" wrapText="true" visible="false">
+        <padding><Insets top="6" right="24" bottom="6" left="24"/></padding>
+    </Label>
+
+    <!-- ── Footer ────────────────────────────────────────────── -->
+    <HBox alignment="CENTER_RIGHT" spacing="12">
+        <padding><Insets top="14" right="24" bottom="14" left="24"/></padding>
+        <Button fx:id="btnCancel"     text="Cancel"      onAction="#onCancelDialog" styleClass="btn-secondary"/>
+        <Button fx:id="btnPlaceOrder" text="✔ Place Order" onAction="#onPlaceOrder"  styleClass="btn-primary"
+                disable="true" defaultButton="true"/>
+    </HBox>
+
+</VBox>

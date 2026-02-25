@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.jewelry.controller.OrderListController"
+      spacing="0" styleClass="content-area">
+
+    <!-- ── Header ────────────────────────────────────────────── -->
+    <HBox styleClass="view-header" alignment="CENTER_LEFT" spacing="12">
+        <padding><Insets top="16" right="20" bottom="16" left="20"/></padding>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="📦 Orders" styleClass="view-title"/>
+            <Label text="Manage customer orders and track their status" styleClass="label-muted"/>
+        </VBox>
+        <Label fx:id="lblStatus" styleClass="label-muted"/>
+        <ProgressIndicator fx:id="loadingIndicator" prefWidth="24" prefHeight="24" visible="false"/>
+    </HBox>
+
+    <!-- ── Toolbar ────────────────────────────────────────────── -->
+    <HBox styleClass="toolbar" alignment="CENTER_LEFT" spacing="8">
+        <padding><Insets top="10" right="20" bottom="10" left="20"/></padding>
+
+        <TextField fx:id="searchField"
+                   promptText="🔍  Search by customer name, phone, or order ID…"
+                   styleClass="search-field"
+                   maxWidth="320"/>
+
+        <Label text="Status:" styleClass="label-muted"/>
+        <ComboBox fx:id="statusFilter" prefWidth="130"/>
+
+        <Region HBox.hgrow="ALWAYS"/>
+
+        <ComboBox fx:id="cboUpdateStatus" promptText="📦 Select order to update" prefWidth="210" disable="true" styleClass="action-combo"/>
+        
+        <Separator orientation="VERTICAL" styleClass="toolbar-separator" />
+        
+        <Button fx:id="btnView"         text="👁 View Detail"  onAction="#onView"     styleClass="btn-secondary"/>
+        <Button fx:id="btnCancel"       text="✕ Cancel"       onAction="#onCancel"   styleClass="btn-danger"/>
+        <Button fx:id="btnRefresh"      text="↻ Refresh"      onAction="#onRefresh"  styleClass="btn-secondary"/>
+        <Button fx:id="btnNewOrder"     text="＋ New Order"    onAction="#onNewOrder" styleClass="btn-primary"/>
+    </HBox>
+
+    <!-- ── Table ─────────────────────────────────────────────── -->
+    <TableView fx:id="orderTable" VBox.vgrow="ALWAYS" styleClass="table-view">
+        <columns>
+            <TableColumn fx:id="colId"       text="#"          prefWidth="60"/>
+            <TableColumn fx:id="colCustomer" text="Customer"   prefWidth="160"/>
+            <TableColumn fx:id="colPhone"    text="Phone"      prefWidth="120"/>
+            <TableColumn fx:id="colDate"     text="Order Date" prefWidth="130"/>
+            <TableColumn fx:id="colStatus"   text="Status"     prefWidth="110"/>
+            <TableColumn fx:id="colItems"    text="Items"      prefWidth="60"/>
+            <TableColumn fx:id="colTotal"    text="Total (₹)"  prefWidth="100"/>
+            <TableColumn fx:id="colNet"      text="Net (₹)"    prefWidth="100"/>
+            <TableColumn fx:id="colNotes"    text="Notes"      prefWidth="200"/>
+        </columns>
+        <placeholder>
+            <Label text="No orders yet. Click '＋ New Order' to create the first one."
+                   styleClass="label-muted"/>
+        </placeholder>
+    </TableView>
+
+</VBox>

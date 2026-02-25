@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.chart.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.jewelry.controller.DashboardController"
+      spacing="0" styleClass="content-area">
+
+    <!-- ── Header ─────────────────────────────────────────────── -->
+    <HBox styleClass="view-header" alignment="CENTER_LEFT" spacing="12">
+        <padding><Insets top="16" right="20" bottom="16" left="20"/></padding>
+        <VBox spacing="2" HBox.hgrow="ALWAYS">
+            <Label text="🏠 Dashboard" styleClass="view-title"/>
+            <Label text="Business overview — revenue, profit, orders and inventory"
+                   styleClass="label-muted"/>
+        </VBox>
+        <Label fx:id="lblLastRefresh" styleClass="label-muted" style="-fx-font-size:11px;"/>
+        <ProgressIndicator fx:id="loadingIndicator" prefWidth="22" prefHeight="22" visible="false"/>
+        <Button text="↻ Refresh" onAction="#onRefresh" styleClass="btn-secondary"/>
+    </HBox>
+
+    <!-- ── KPI Cards Row ──────────────────────────────────────── -->
+    <ScrollPane fitToWidth="true" hbarPolicy="NEVER">
+        <FlowPane fx:id="kpiPane" hgap="12" vgap="12">
+            <padding><Insets top="16" right="20" bottom="8" left="20"/></padding>
+            <!-- Cards are built programmatically by DashboardController -->
+        </FlowPane>
+    </ScrollPane>
+
+    <!-- ── Charts + Side Panels ──────────────────────────────── -->
+    <HBox VBox.vgrow="ALWAYS" spacing="12">
+        <padding><Insets top="8" right="20" bottom="12" left="20"/></padding>
+
+        <!-- Left: Revenue BarChart + Status PieChart -->
+        <VBox spacing="12" HBox.hgrow="ALWAYS">
+
+            <!-- Revenue over 6 months -->
+            <VBox spacing="6" VBox.vgrow="ALWAYS"
+                  style="-fx-background-color:#16213e; -fx-border-color:#e2b04a22; -fx-border-width:1; -fx-border-radius:8; -fx-background-radius:8;">
+                <padding><Insets top="10" right="12" bottom="10" left="12"/></padding>
+                <Label text="Monthly Revenue  (last 6 months)" styleClass="form-label"/>
+                <BarChart fx:id="revenueChart" VBox.vgrow="ALWAYS"
+                          animated="true"
+                          style="-fx-background-color:transparent;">
+                    <xAxis><CategoryAxis fx:id="xAxis" label="Month"/></xAxis>
+                    <yAxis><NumberAxis  fx:id="yAxis"  label="₹"/></yAxis>
+                </BarChart>
+            </VBox>
+
+            <!-- Order status pie -->
+            <VBox spacing="6"
+                  style="-fx-background-color:#16213e; -fx-border-color:#e2b04a22; -fx-border-width:1; -fx-border-radius:8; -fx-background-radius:8;"
+                  prefHeight="240">
+                <padding><Insets top="10" right="12" bottom="10" left="12"/></padding>
+                <Label text="Orders by Status" styleClass="form-label"/>
+                <PieChart fx:id="statusPieChart" VBox.vgrow="ALWAYS"
+                          animated="true"
+                          style="-fx-background-color:transparent;"/>
+            </VBox>
+        </VBox>
+
+        <!-- Right: Top Products + Low Stock -->
+        <VBox spacing="12" prefWidth="320">
+
+            <!-- Top 5 products -->
+            <VBox spacing="6" VBox.vgrow="ALWAYS"
+                  style="-fx-background-color:#16213e; -fx-border-color:#2ecc7133; -fx-border-width:1; -fx-border-radius:8; -fx-background-radius:8;">
+                <padding><Insets top="10" right="12" bottom="10" left="12"/></padding>
+                <Label text="🏆 Top 5 Products  (by units sold)" styleClass="form-label"/>
+                <TableView fx:id="topProductsTable" VBox.vgrow="ALWAYS" styleClass="table-view">
+                    <columns>
+                        <TableColumn fx:id="colTopName"    text="Product" prefWidth="120"/>
+                        <TableColumn fx:id="colTopSku"     text="SKU"     prefWidth="80"/>
+                        <TableColumn fx:id="colTopUnits"   text="Units"   prefWidth="50"/>
+                        <TableColumn fx:id="colTopRevenue" text="Revenue" prefWidth="90"/>
+                    </columns>
+                    <placeholder>
+                        <Label text="No completed orders yet" styleClass="label-muted"/>
+                    </placeholder>
+                </TableView>
+            </VBox>
+
+            <!-- Low stock -->
+            <VBox spacing="6" prefHeight="200"
+                  style="-fx-background-color:#16213e; -fx-border-color:#e74c3c33; -fx-border-width:1; -fx-border-radius:8; -fx-background-radius:8;">
+                <padding><Insets top="10" right="12" bottom="10" left="12"/></padding>
+                <Label text="⚠ Low Stock Alert  (≤ 5 units)" styleClass="form-label"
+                       style="-fx-text-fill: #e74c3c;"/>
+                <ListView fx:id="lowStockList" VBox.vgrow="ALWAYS"
+                          style="-fx-background-color:transparent; -fx-font-size:12px;"/>
+            </VBox>
+        </VBox>
+    </HBox>
+
+</VBox>
