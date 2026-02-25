@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<jpackage-state version="19" platform="windows">
+  <app-version>1.0</app-version>
+  <main-launcher>JewelryManagementSystem</main-launcher>
+  <main-class>com.jewelry.AppLauncher</main-class>
+  <signed>false</signed>
+  <app-store>false</app-store></jpackage-state>
