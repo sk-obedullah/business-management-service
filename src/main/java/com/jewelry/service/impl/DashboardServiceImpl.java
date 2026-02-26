@@ -85,7 +85,7 @@ public class DashboardServiceImpl implements DashboardService {
                 SELECT
                   COALESCE(SUM(o.total_amount - COALESCE(o.discount,0)), 0)   AS revenue,
                   COALESCE(SUM(ol.quantity * (ol.unit_price - ol.cost_price)), 0) AS profit
-                FROM `order` o
+                FROM "order" o
                 JOIN order_line ol ON ol.order_id = o.id
                 WHERE o.status = 'COMPLETED'
                 """;
@@ -101,8 +101,8 @@ public class DashboardServiceImpl implements DashboardService {
     private void loadOrderCounts(Connection conn, DashboardSummary s) throws SQLException {
         // Orders created today
         String todaySql = """
-                SELECT COUNT(*) FROM `order`
-                WHERE DATE(created_at) = CURDATE()
+                SELECT COUNT(*) FROM "order"
+                WHERE CAST(created_at AS DATE) = CURRENT_DATE
                 """;
         try (PreparedStatement ps = conn.prepareStatement(todaySql);
                 ResultSet rs = ps.executeQuery()) {
@@ -111,7 +111,7 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         // Pending orders
-        String pendingSql = "SELECT COUNT(*) FROM `order` WHERE status = 'PENDING'";
+        String pendingSql = "SELECT COUNT(*) FROM \"order\" WHERE status = 'PENDING'";
         try (PreparedStatement ps = conn.prepareStatement(pendingSql);
                 ResultSet rs = ps.executeQuery()) {
             if (rs.next())
@@ -141,11 +141,11 @@ public class DashboardServiceImpl implements DashboardService {
     private void loadMonthlyRevenue(Connection conn, DashboardSummary s) throws SQLException {
         String sql = """
                 SELECT
-                  DATE_FORMAT(o.created_at, '%Y-%m') AS ym,
+                  FORMATDATETIME(o.created_at, 'yyyy-MM') AS ym,
                   COALESCE(SUM(o.total_amount - COALESCE(o.discount,0)), 0) AS revenue
-                FROM `order` o
+                FROM "order" o
                 WHERE o.status = 'COMPLETED'
-                  AND o.created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+                  AND o.created_at >= DATEADD('MONTH', -6, NOW())
                 GROUP BY ym
                 ORDER BY ym ASC
                 """;
@@ -162,7 +162,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     private void loadOrdersByStatus(Connection conn, DashboardSummary s) throws SQLException {
-        String sql = "SELECT status, COUNT(*) AS cnt FROM `order` GROUP BY status";
+        String sql = "SELECT status, COUNT(*) AS cnt FROM \"order\" GROUP BY status";
         Map<String, Long> map = new LinkedHashMap<>();
         try (PreparedStatement ps = conn.prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
@@ -184,7 +184,7 @@ public class DashboardServiceImpl implements DashboardService {
                   SUM(ol.quantity)                                      AS units_sold,
                   SUM(ol.quantity * ol.unit_price)                      AS revenue
                 FROM order_line ol
-                JOIN `order` o ON o.id = ol.order_id
+                JOIN "order" o ON o.id = ol.order_id
                 JOIN product  p ON p.id = ol.product_id
                 WHERE o.status = 'COMPLETED'
                 GROUP BY p.id, p.name, p.sku

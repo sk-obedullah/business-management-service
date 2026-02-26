@@ -73,7 +73,7 @@ public class ReportServiceImpl implements ReportService {
                   o.id,
                   CONCAT(c.first_name, ' ', c.last_name) AS customer,
                   c.email,
-                  DATE_FORMAT(o.order_date, '%Y-%m-%d')   AS order_date,
+                  FORMATDATETIME(o.order_date, 'yyyy-MM-dd') AS order_date,
                   o.status,
                   o.total_amount,
                   COALESCE(o.discount, 0)                 AS discount,
@@ -81,7 +81,7 @@ public class ReportServiceImpl implements ReportService {
                   COALESCE(SUM(ol.quantity*(ol.unit_price - ol.cost_price)), 0) AS profit,
                   COUNT(ol.id)                            AS item_count,
                   o.notes
-                FROM `order` o
+                FROM "order" o
                 LEFT JOIN customer   c  ON c.id = o.customer_id
                 LEFT JOIN order_line ol ON ol.order_id = o.id
                 WHERE 1=1
@@ -128,11 +128,11 @@ public class ReportServiceImpl implements ReportService {
             throws IOException {
         StringBuilder sql = new StringBuilder("""
                 SELECT
-                  DATE_FORMAT(o.order_date, '%Y-%m')                          AS month,
+                  FORMATDATETIME(o.order_date, 'yyyy-MM')                       AS month,
                   COUNT(DISTINCT o.id)                                         AS order_count,
                   COALESCE(SUM(o.total_amount - COALESCE(o.discount,0)), 0)    AS revenue,
                   COALESCE(SUM(ol.quantity*(ol.unit_price - ol.cost_price)),0) AS profit
-                FROM `order` o
+                FROM "order" o
                 LEFT JOIN order_line ol ON ol.order_id = o.id
                 WHERE o.status = 'COMPLETED'
                 """);
@@ -205,9 +205,9 @@ public class ReportServiceImpl implements ReportService {
                   COUNT(DISTINCT o.id)                   AS total_orders,
                   COALESCE(SUM(CASE WHEN o.status='COMPLETED'
                     THEN (o.total_amount - COALESCE(o.discount,0)) ELSE 0 END), 0) AS total_spend,
-                  MAX(DATE_FORMAT(o.order_date,'%Y-%m-%d'))                         AS last_order_date
+                  MAX(FORMATDATETIME(o.order_date,'yyyy-MM-dd'))                    AS last_order_date
                 FROM customer c
-                LEFT JOIN `order` o ON o.customer_id = c.id
+                LEFT JOIN "order" o ON o.customer_id = c.id
                 WHERE 1=1
                 """);
         List<Object> params = new ArrayList<>();

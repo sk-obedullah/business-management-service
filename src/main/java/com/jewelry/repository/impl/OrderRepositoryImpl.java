@@ -23,7 +23,7 @@ import java.util.Optional;
 public class OrderRepositoryImpl extends AbstractJdbcRepository implements OrderRepository {
 
     private static final String INSERT_SQL = """
-            INSERT INTO `order`
+            INSERT INTO "order"
               (customer_id, order_date, status, total_amount, discount, notes, created_at, updated_at)
             VALUES (?, NOW(), ?, ?, ?, ?, NOW(), NOW())
             """;
@@ -31,7 +31,7 @@ public class OrderRepositoryImpl extends AbstractJdbcRepository implements Order
     private static final String SELECT_ALL = """
             SELECT o.*, CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
                    c.phone AS customer_phone, c.email AS customer_email, c.address AS customer_address
-            FROM `order` o
+            FROM "order" o
             LEFT JOIN customer c ON c.id = o.customer_id
             ORDER BY o.created_at DESC
             """;
@@ -39,7 +39,7 @@ public class OrderRepositoryImpl extends AbstractJdbcRepository implements Order
     private static final String SELECT_BY_ID = """
             SELECT o.*, CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
                    c.phone AS customer_phone, c.email AS customer_email, c.address AS customer_address
-            FROM `order` o
+            FROM "order" o
             LEFT JOIN customer c ON c.id = o.customer_id
             WHERE o.id = ?
             """;
@@ -47,7 +47,7 @@ public class OrderRepositoryImpl extends AbstractJdbcRepository implements Order
     private static final String SELECT_BY_CUSTOMER = """
             SELECT o.*, CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
                    c.phone AS customer_phone, c.email AS customer_email, c.address AS customer_address
-            FROM `order` o
+            FROM "order" o
             LEFT JOIN customer c ON c.id = o.customer_id
             WHERE o.customer_id = ?
             ORDER BY o.created_at DESC
@@ -56,22 +56,22 @@ public class OrderRepositoryImpl extends AbstractJdbcRepository implements Order
     private static final String SELECT_BY_STATUS = """
             SELECT o.*, CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
                    c.phone AS customer_phone, c.email AS customer_email, c.address AS customer_address
-            FROM `order` o
+            FROM "order" o
             LEFT JOIN customer c ON c.id = o.customer_id
             WHERE o.status = ?
             ORDER BY o.created_at DESC
             """;
 
     private static final String UPDATE_SQL = """
-            UPDATE `order` SET
+            UPDATE "order" SET
               customer_id = ?, status = ?, total_amount = ?,
               discount = ?, notes = ?, updated_at = NOW()
             WHERE id = ?
             """;
 
-    private static final String UPDATE_STATUS = "UPDATE `order` SET status = ?, updated_at = NOW() WHERE id = ?";
-    private static final String UPDATE_TOTAL = "UPDATE `order` SET total_amount = ?, updated_at = NOW() WHERE id = ?";
-    private static final String DELETE_BY_ID = "DELETE FROM `order` WHERE id = ?";
+    private static final String UPDATE_STATUS = "UPDATE \"order\" SET status = ?, updated_at = NOW() WHERE id = ?";
+    private static final String UPDATE_TOTAL = "UPDATE \"order\" SET total_amount = ?, updated_at = NOW() WHERE id = ?";
+    private static final String DELETE_BY_ID = "DELETE FROM \"order\" WHERE id = ?";
 
     public OrderRepositoryImpl(DataSource dataSource) {
         super(dataSource);

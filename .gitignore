@@ -1,18 +1,27 @@
+# ── Build output ──────────────────────────────────────────────────
 target/
 *.class
 
-# IntelliJ IDEA
+# ── IntelliJ IDEA ─────────────────────────────────────────────────
 .idea/
 *.iml
 *.iws
 
-# Eclipse
+# ── Eclipse ───────────────────────────────────────────────────────
 .project
 .classpath
 .settings/
 
-# VS Code
+# ── VS Code ───────────────────────────────────────────────────────
 .vscode/
 
-# Build logs
+# ── Runtime logs ──────────────────────────────────────────────────
+logs/
 *.log
+
+# ── H2 Embedded Database files (created at runtime, not source) ───
+*.mv.db
+*.trace.db
+
+# ── Misc temp files ───────────────────────────────────────────────
+*.resolved
