@@ -25,6 +25,9 @@
         <h2.version>2.2.224</h2.version>
         <slf4j.version>2.0.12</slf4j.version>
         <logback.version>1.5.3</logback.version>
+        <spring.version>6.2.3</spring.version>
+        <spring.data.version>3.4.2</spring.data.version>
+        <hibernate.version>6.6.8.Final</hibernate.version>
 
         <!-- Plugin versions -->
         <javafx.maven.plugin.version>0.0.8</javafx.maven.plugin.version>
@@ -56,18 +59,39 @@
             <version>${javafx.version}</version>
         </dependency>
 
-        <!-- ===== Database (Embedded H2 – no external install required) ===== -->
+        <!-- ===== Database (Embedded H2) ===== -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>${h2.version}</version>
         </dependency>
 
-        <!-- ===== Connection Pooling ===== -->
+        <!-- ===== Spring Core (IoC / DI) ===== -->
         <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-            <version>${hikaricp.version}</version>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+
+        <!-- ===== Spring ORM (Hibernate integration) ===== -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-orm</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+
+        <!-- ===== Spring Data JPA ===== -->
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-jpa</artifactId>
+            <version>${spring.data.version}</version>
+        </dependency>
+
+        <!-- ===== Hibernate ORM ===== -->
+        <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>${hibernate.version}</version>
         </dependency>
 
         <!-- ===== Logging ===== -->

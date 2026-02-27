@@ -1,31 +1,37 @@
 package com.jewelry.repository;
 
 import com.jewelry.entity.Product;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Product-specific repository contract.
- *
- * <p>
- * Extends {@link BaseRepository} and declares product-domain queries
- * that go beyond standard CRUD.
+ * Spring Data JPA repository for {@link Product}.
+ * All standard CRUD (save, findById, findAll, delete) is inherited from JpaRepository.
  */
-public interface ProductRepository extends BaseRepository<Product, Long> {
+@Repository
+public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    /** Checks existence by SKU to enforce uniqueness before insert. */
+    Optional<Product> findBySku(String sku);
+
     boolean existsBySku(String sku);
 
-    /** Returns products whose quantity-on-hand is below the reorder level. */
-    List<Product> findLowStock(int threshold);
-
-    /** Returns products matching the given category (case-insensitive). */
     List<Product> findByCategory(String category);
 
-    /** Full-text search across name and description. */
-    List<Product> search(String keyword);
+    /** Products whose stock is at or below the threshold. */
+    List<Product> findByQuantityOnHandLessThanEqual(int threshold);
 
-    /** Returns the product with the supplied SKU if it exists. */
-    Optional<Product> findBySku(String sku);
+    /** Full-text keyword search across name, sku, category, and description. */
+    @Query("""
+            SELECT p FROM Product p
+            WHERE LOWER(p.name)        LIKE LOWER(CONCAT('%', :kw, '%'))
+               OR LOWER(p.sku)         LIKE LOWER(CONCAT('%', :kw, '%'))
+               OR LOWER(p.category)    LIKE LOWER(CONCAT('%', :kw, '%'))
+               OR LOWER(p.description) LIKE LOWER(CONCAT('%', :kw, '%'))
+            """)
+    List<Product> search(@Param("kw") String keyword);
 }

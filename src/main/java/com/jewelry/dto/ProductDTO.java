@@ -30,6 +30,7 @@ public class ProductDTO {
     private BigDecimal sellingPrice;
     private int quantityOnHand;
     private String description;
+    private String imagePath;
 
     // ── Constructors ─────────────────────────────────────────────────────────
 
@@ -152,5 +153,13 @@ public class ProductDTO {
 
     public void setDescription(String d) {
         this.description = d;
+    }
+
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public void setImagePath(String imagePath) {
+        this.imagePath = imagePath;
     }
 }

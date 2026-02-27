@@ -1,27 +1,35 @@
 package com.jewelry.controller;
 
-import com.jewelry.config.AppContext;
 import com.jewelry.dto.OrderDTO;
 import com.jewelry.entity.Order;
 import com.jewelry.entity.OrderStatus;
 import com.jewelry.exception.AppException;
 import com.jewelry.service.OrderService;
 import com.jewelry.util.OrderMapper;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.application.Platform;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.ListCell;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,9 +50,13 @@ import java.util.ResourceBundle;
  * status, and order total. Provides New Order, View Details, and Cancel
  * actions.
  */
+@Component
 public class OrderListController implements Initializable {
 
     private static final Logger log = LoggerFactory.getLogger(OrderListController.class);
+
+    @Autowired
+    private OrderService orderService;
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm");
 
     // ── FXML Bindings ────────────────────────────────────────────────────────
@@ -90,13 +102,8 @@ public class OrderListController implements Initializable {
     private TableColumn<OrderDTO, String> colNotes;
 
     // ── State ────────────────────────────────────────────────────────────────
-    private final OrderService orderService;
     private final ObservableList<OrderDTO> masterList = FXCollections.observableArrayList();
     private FilteredList<OrderDTO> filteredList;
-
-    public OrderListController() {
-        this.orderService = AppContext.getInstance().getOrderService();
-    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -155,6 +162,17 @@ public class OrderListController implements Initializable {
         colNet.setCellFactory(tc -> currencyCell());
 
         orderTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        orderTable.setRowFactory(tv -> {
+            TableRow<OrderDTO> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    orderTable.getSelectionModel().select(row.getItem());
+                    onView();
+                }
+            });
+            return row;
+        });
     }
 
     private TableCell<OrderDTO, BigDecimal> currencyCell() {
@@ -370,6 +388,7 @@ public class OrderListController implements Initializable {
                 orderService.updateStatus(selected.getId(), OrderStatus.CANCELLED);
                 loadOrdersAsync();
                 log.info("Cancelled order id={}", selected.getId());
+                com.jewelry.util.SnackbarUtil.showSuccess(orderTable, "Order cancelled successfully!");
             } catch (AppException ex) {
                 showError("Cancel Failed", ex.getMessage());
             }
@@ -379,14 +398,41 @@ public class OrderListController implements Initializable {
     // ── Dialog ───────────────────────────────────────────────────────────────
 
     private void openOrderForm(OrderDTO orderToView) {
-        MainLayoutController.navigateTo("/fxml/order/OrderForm.fxml", (OrderFormController formController) -> {
-            if (orderToView != null) {
-                Order fullOrder = orderService.loadWithLines(orderToView.getId());
-                formController.setOrderForView(fullOrder);
-            } else {
-                formController.setOrderForView(null);
+        if (orderToView == null) {
+            MainLayoutController.navigateTo("/fxml/order/OrderForm.fxml", (OrderFormController formController) -> {
+                formController.initNewOrder();
+            });
+            return;
+        }
+
+        loadingIndicator.setVisible(true);
+        orderTable.setDisable(true);
+
+        Task<Order> task = new Task<>() {
+            @Override
+            protected Order call() {
+                return orderService.loadWithLines(orderToView.getId());
             }
+        };
+
+        task.setOnSucceeded(e -> {
+            loadingIndicator.setVisible(false);
+            orderTable.setDisable(false);
+            MainLayoutController.navigateTo("/fxml/order/OrderForm.fxml", (OrderFormController formController) -> {
+                formController.setOrderForView(task.getValue());
+            });
         });
+
+        task.setOnFailed(e -> {
+            loadingIndicator.setVisible(false);
+            orderTable.setDisable(false);
+            log.error("Failed to load order details", task.getException());
+            showError("Load Error", "Failed to load order details.");
+        });
+
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
     }
 
     public void setSearchQuery(String query) {

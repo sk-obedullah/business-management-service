@@ -1,6 +1,5 @@
 package com.jewelry.controller;
 
-import com.jewelry.config.AppContext;
 import com.jewelry.dto.OrderLineDTO;
 import com.jewelry.entity.Order;
 import com.jewelry.entity.OrderLine;
@@ -15,23 +14,36 @@ import com.jewelry.service.ProductService;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
 import javafx.fxml.FXMLLoader;
+import javafx.fxml.Initializable;
+import javafx.scene.control.Button;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.VBox;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import com.jewelry.util.SnackbarUtil;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
+import com.jewelry.controller.ProductViewController;
+
+// ... (existing code, appending import to the top section and adding the method call)
 
 /**
  * Controller for the New Order modal dialog (OrderForm.fxml).
@@ -52,18 +64,29 @@ import java.util.ResourceBundle;
  * All business logic (stock check, price snapshot, transaction) lives in
  * {@link com.jewelry.service.impl.OrderServiceImpl}.
  */
+@Component
 public class OrderFormController implements Initializable {
 
     private static final Logger log = LoggerFactory.getLogger(OrderFormController.class);
+
+    @Autowired
+    private CustomerService customerService;
+    @Autowired
+    private ProductService productService;
+    @Autowired
+    private OrderService orderService;
 
     @FXML
     private Label lblTitle;
     @FXML
     private Label lblSubtitle;
 
-    // ── FXML – Customer / Notes ──────────────────────────────────────────────
+    // ── FXML – Customer / Notes
+    // ──────────────────────────────────────────────
     @FXML
     private Button btnNewCustomer;
+    @FXML
+    private VBox customerSelectionPane;
     @FXML
     private TextField txtCustomerSearch;
     @FXML
@@ -87,7 +110,8 @@ public class OrderFormController implements Initializable {
     @FXML
     private Label lblError;
 
-    // ── FXML – Item Picker ───────────────────────────────────────────────────
+    // ── FXML – Item Picker
+    // ───────────────────────────────────────────────────
     @FXML
     private VBox addProductSection;
     @FXML
@@ -101,7 +125,8 @@ public class OrderFormController implements Initializable {
     @FXML
     private Button btnAddItem;
 
-    // ── FXML – Line-item Table ───────────────────────────────────────────────
+    // ── FXML – Line-item Table
+    // ───────────────────────────────────────────────
     @FXML
     private TableView<OrderLineDTO> lineTable;
     @FXML
@@ -117,33 +142,47 @@ public class OrderFormController implements Initializable {
     @FXML
     private TableColumn<OrderLineDTO, Void> colRemove;
 
-    // ── FXML – Footer ────────────────────────────────────────────────────────
+    // ── FXML – Footer
+    // ────────────────────────────────────────────────────────
     @FXML
     private Button btnPlaceOrder;
     @FXML
     private Button btnCancel;
 
-    // ── State ────────────────────────────────────────────────────────────────
-    private final CustomerService customerService;
-    private final ProductService productService;
-    private final OrderService orderService;
+    // ── State
+    // ────────────────────────────────────────────────────────────────
 
     private final ObservableList<OrderLineDTO> lineItems = FXCollections.observableArrayList();
     private List<Customer> allCustomers = new java.util.ArrayList<>();
     private boolean saved = false;
-
-    public OrderFormController() {
-        customerService = AppContext.getInstance().getCustomerService();
-        productService = AppContext.getInstance().getProductService();
-        orderService = AppContext.getInstance().getOrderService();
-    }
+    private Order currentOrderForView;
 
     public void setOrderForView(Order order) {
         this.saved = false;
+        this.currentOrderForView = order;
 
         if (order == null) {
             lblTitle.setText("📦 New Order");
             lblSubtitle.setText("Select a customer, add products, then place the order.");
+
+            customerSelectionPane.setVisible(true);
+            customerSelectionPane.setManaged(true);
+            
+            customerInfoCard.setVisible(false);
+            customerInfoCard.setManaged(false);
+
+            txtNotes.setEditable(true);
+            txtDiscount.setEditable(true);
+            txtDiscount.setDisable(false);
+
+            addProductSection.setVisible(true);
+            addProductSection.setManaged(true);
+
+            btnPlaceOrder.setVisible(true);
+            btnPlaceOrder.setManaged(true);
+
+            btnCancel.setText("Cancel");
+            colRemove.setVisible(true);
             return;
         }
 
@@ -151,12 +190,8 @@ public class OrderFormController implements Initializable {
         lblSubtitle.setText("Read-only details for this order.");
 
         // Switch to Customer Info Card
-        txtCustomerSearch.setVisible(false);
-        txtCustomerSearch.setManaged(false);
-        btnNewCustomer.setVisible(false);
-        btnNewCustomer.setManaged(false);
-        cboCustomer.setVisible(false);
-        cboCustomer.setManaged(false);
+        customerSelectionPane.setVisible(false);
+        customerSelectionPane.setManaged(false);
 
         customerInfoCard.setVisible(true);
         customerInfoCard.setManaged(true);
@@ -164,7 +199,7 @@ public class OrderFormController implements Initializable {
         lblCustomerPhone.setText(order.getCustomerPhone() != null ? "📞 " + order.getCustomerPhone() : "No Phone");
 
         if (order.getCustomerEmail() != null && !order.getCustomerEmail().isBlank()) {
-            lblCustomerEmail.setText("✉ " + order.getCustomerEmail());
+            lblCustomerEmail.setText("✉️ " + order.getCustomerEmail());
             lblCustomerEmail.setManaged(true);
             lblCustomerEmail.setVisible(true);
         } else {
@@ -227,6 +262,20 @@ public class OrderFormController implements Initializable {
         refreshTotal();
     }
 
+    public void initNewOrder() {
+        setOrderForView(null);
+        lineItems.clear();
+        cboCustomer.setValue(null);
+        txtNotes.clear();
+        txtDiscount.clear();
+        txtCustomerSearch.clear();
+        cboProduct.setValue(null);
+        txtQuantity.clear();
+        lblStock.setText("");
+        lblUnitPrice.setText("");
+        refreshTotal();
+    }
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         lblError.setVisible(false);
@@ -242,7 +291,8 @@ public class OrderFormController implements Initializable {
         lineItems.addListener((javafx.collections.ListChangeListener<OrderLineDTO>) c -> refreshTotal());
     }
 
-    // ── Setup ─────────────────────────────────────────────────────────────────
+    // ── Setup
+    // ─────────────────────────────────────────────────────────────────
 
     private void configureLineTable() {
         colProduct.setCellValueFactory(new PropertyValueFactory<>("productName"));
@@ -275,6 +325,31 @@ public class OrderFormController implements Initializable {
 
         lineTable.setItems(lineItems);
         lineTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        lineTable.setRowFactory(tv -> {
+            javafx.scene.control.TableRow<OrderLineDTO> row = new javafx.scene.control.TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    OrderLineDTO item = row.getItem();
+                    if (item != null && item.getProductId() != null) {
+                        productService.findById(item.getProductId()).ifPresent(product -> {
+                            com.jewelry.dto.ProductDTO productDTO = com.jewelry.util.ProductMapper.toDTO(product);
+                            MainLayoutController.navigateTo("/fxml/product/ProductView.fxml",
+                                    (ProductViewController controller) -> {
+                                        controller.initData(productDTO);
+                                        controller.setOnBackAction(() -> {
+                                            MainLayoutController.navigateTo("/fxml/order/OrderForm.fxml",
+                                                    (OrderFormController formCtrl) -> {
+                                                        formCtrl.setOrderForView(currentOrderForView);
+                                                    });
+                                        });
+                                    });
+                        });
+                    }
+                }
+            });
+            return row;
+        });
     }
 
     private void loadCustomers() {
@@ -343,13 +418,16 @@ public class OrderFormController implements Initializable {
         });
     }
 
-    // ── FXML Actions ─────────────────────────────────────────────────────────
+    // ── FXML Actions ────────────────────────────────────────────────────────
 
     @FXML
     private void onNewCustomer() {
         try {
             FXMLLoader loader = new FXMLLoader(java.util.Objects.requireNonNull(
                     getClass().getResource("/fxml/customer/CustomerForm.fxml")));
+            // Use Spring to create controllers — enables @Autowired in the child controller
+            loader.setControllerFactory(com.jewelry.config.SpringContext::getBean);
+            
             Parent root = loader.load();
             CustomerFormController controller = loader.getController();
 
@@ -487,7 +565,7 @@ public class OrderFormController implements Initializable {
         closeDialog();
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
+    // ── Helpers ─────────────────────────────────────────────────────────────
 
     private void refreshTotal() {
         BigDecimal total = lineItems.stream()
@@ -533,7 +611,7 @@ public class OrderFormController implements Initializable {
     }
 
     private void showError(String msg) {
-        lblError.setText("⚠ " + msg);
+        lblError.setText("⚠️ " + msg);
         lblError.setVisible(true);
     }
 

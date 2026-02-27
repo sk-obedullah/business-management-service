@@ -37,6 +37,7 @@
 
         <Button fx:id="btnRefresh" text="↻ Refresh"       onAction="#onRefresh" styleClass="btn-secondary"/>
         <Button fx:id="btnAdd"     text="＋ Add Customer"  onAction="#onAdd"     styleClass="btn-primary"/>
+        <Button fx:id="btnView"    text="👁 View"          onAction="#onView"    styleClass="btn-secondary"/>
         <Button fx:id="btnEdit"    text="✎ Edit"           onAction="#onEdit"    styleClass="btn-secondary"/>
         <Button fx:id="btnDelete"  text="✕ Delete"         onAction="#onDelete"  styleClass="btn-danger"/>
     </HBox>
@@ -44,12 +45,12 @@
     <!-- ── Table ─────────────────────────────────────────────── -->
     <TableView fx:id="customerTable" VBox.vgrow="ALWAYS" styleClass="table-view">
         <columns>
-            <TableColumn fx:id="colFullName" text="Full Name"    prefWidth="180"/>
-            <TableColumn fx:id="colEmail"    text="Email"        prefWidth="220"/>
-            <TableColumn fx:id="colPhone"    text="Phone"        prefWidth="130"/>
-            <TableColumn fx:id="colAddress"  text="Address"      prefWidth="200"/>
-            <TableColumn fx:id="colNotes"    text="Notes"        prefWidth="200"/>
-            <TableColumn fx:id="colOrders"   text="Orders"       prefWidth="100"/>
+            <TableColumn fx:id="colFullName" text="Full Name"    prefWidth="180" minWidth="120" />
+            <TableColumn fx:id="colEmail"    text="Email"        prefWidth="220" minWidth="150" />
+            <TableColumn fx:id="colPhone"    text="Phone"        prefWidth="130" minWidth="100" />
+            <TableColumn fx:id="colAddress"  text="Address"      prefWidth="200" minWidth="150" />
+            <TableColumn fx:id="colNotes"    text="Notes"        prefWidth="200" minWidth="100" />
+            <TableColumn fx:id="colOrders"   text="Orders"       prefWidth="100" minWidth="80" />
         </columns>
         <placeholder>
             <Label text="No customers yet. Click '＋ Add Customer' to get started."

@@ -1,6 +1,5 @@
 package com.jewelry.controller;
 
-import com.jewelry.config.AppContext;
 import com.jewelry.dto.CustomerDTO;
 import com.jewelry.entity.Customer;
 import com.jewelry.exception.AppException;
@@ -12,14 +11,20 @@ import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,13 +52,19 @@ import java.util.ResourceBundle;
  * <strong>Architecture rule:</strong> No SQL or business logic here.
  * All operations delegate to {@link CustomerService}.
  */
+@Component
 public class CustomerListController implements Initializable {
 
     private static final Logger log = LoggerFactory.getLogger(CustomerListController.class);
 
+    @Autowired
+    private CustomerService customerService;
+
     // ── FXML Bindings ────────────────────────────────────────────────────────
     @FXML
     private TextField searchField;
+    @FXML
+    private Button btnView;
     @FXML
     private Button btnAdd;
     @FXML
@@ -86,13 +97,8 @@ public class CustomerListController implements Initializable {
     private TableColumn<CustomerDTO, Void> colOrders;
 
     // ── State ────────────────────────────────────────────────────────────────
-    private final CustomerService customerService;
     private final ObservableList<CustomerDTO> masterList = FXCollections.observableArrayList();
     private FilteredList<CustomerDTO> filteredList;
-
-    public CustomerListController() {
-        this.customerService = AppContext.getInstance().getCustomerService();
-    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -135,6 +141,17 @@ public class CustomerListController implements Initializable {
         });
 
         customerTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        customerTable.setRowFactory(tv -> {
+            TableRow<CustomerDTO> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    customerTable.getSelectionModel().select(row.getItem());
+                    onView();
+                }
+            });
+            return row;
+        });
     }
 
     private TableCell<CustomerDTO, String> wrapCell() {
@@ -176,6 +193,8 @@ public class CustomerListController implements Initializable {
     // ── Selection Bindings ───────────────────────────────────────────────────
 
     private void configureSelectionBindings() {
+        btnView.disableProperty().bind(
+                customerTable.getSelectionModel().selectedItemProperty().isNull());
         btnEdit.disableProperty().bind(
                 customerTable.getSelectionModel().selectedItemProperty().isNull());
         btnDelete.disableProperty().bind(
@@ -223,6 +242,17 @@ public class CustomerListController implements Initializable {
     }
 
     @FXML
+    private void onView() {
+        CustomerDTO selected = customerTable.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            MainLayoutController.navigateTo("/fxml/customer/CustomerView.fxml", (CustomerViewController controller) -> {
+                controller.initData(selected);
+                controller.setOnEditAction(dto -> openFormDialog(dto));
+            });
+        }
+    }
+
+    @FXML
     private void onEdit() {
         CustomerDTO selected = customerTable.getSelectionModel().getSelectedItem();
         if (selected != null)
@@ -251,6 +281,7 @@ public class CustomerListController implements Initializable {
                 masterList.removeIf(dto -> dto.getId().equals(selected.getId()));
                 updateStatus();
                 log.info("Deleted customer id={}", selected.getId());
+                com.jewelry.util.SnackbarUtil.showSuccess(customerTable, "Customer deleted successfully!");
             } catch (AppException ex) {
                 showError("Delete Failed", ex.getMessage());
             }

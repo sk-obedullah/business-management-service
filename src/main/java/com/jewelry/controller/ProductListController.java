@@ -1,26 +1,31 @@
 package com.jewelry.controller;
 
-import com.jewelry.config.AppContext;
 import com.jewelry.dto.ProductDTO;
 import com.jewelry.entity.Product;
 import com.jewelry.exception.AppException;
 import com.jewelry.service.ProductService;
 import com.jewelry.util.ProductMapper;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +57,7 @@ import java.util.ResourceBundle;
  * <strong>Architecture rule:</strong> No SQL, no business logic here.
  * We only orchestrate service calls and JavaFX bindings.
  */
+@Component
 public class ProductListController implements Initializable {
 
     private static final Logger log = LoggerFactory.getLogger(ProductListController.class);
@@ -60,6 +66,8 @@ public class ProductListController implements Initializable {
     // ── FXML Bindings ────────────────────────────────────────────────────────
     @FXML
     private TextField searchField;
+    @FXML
+    private Button btnView;
     @FXML
     private Button btnAdd;
     @FXML
@@ -98,13 +106,10 @@ public class ProductListController implements Initializable {
     private TableColumn<ProductDTO, Integer> colQty;
 
     // ── State ────────────────────────────────────────────────────────────────
-    private final ProductService productService;
+    @Autowired
+    private ProductService productService;
     private final ObservableList<ProductDTO> masterList = FXCollections.observableArrayList();
     private FilteredList<ProductDTO> filteredList;
-
-    public ProductListController() {
-        this.productService = AppContext.getInstance().getProductService();
-    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -159,6 +164,17 @@ public class ProductListController implements Initializable {
 
         // Allow all columns to be resized/sorted (non-deprecated API from JavaFX 20+)
         productTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        productTable.setRowFactory(tv -> {
+            TableRow<ProductDTO> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    productTable.getSelectionModel().select(row.getItem());
+                    onView();
+                }
+            });
+            return row;
+        });
     }
 
     private TableCell<ProductDTO, BigDecimal> currencyCell() {
@@ -198,6 +214,8 @@ public class ProductListController implements Initializable {
 
     private void configureSelectionBindings() {
         // Enable Edit & Delete only when a row is selected
+        btnView.disableProperty().bind(
+                productTable.getSelectionModel().selectedItemProperty().isNull());
         btnEdit.disableProperty().bind(
                 productTable.getSelectionModel().selectedItemProperty().isNull());
         btnDelete.disableProperty().bind(
@@ -245,6 +263,17 @@ public class ProductListController implements Initializable {
     }
 
     @FXML
+    private void onView() {
+        ProductDTO selected = productTable.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            MainLayoutController.navigateTo("/fxml/product/ProductView.fxml", (ProductViewController controller) -> {
+                controller.initData(selected);
+                controller.setOnEditAction(dto -> openFormDialog(dto));
+            });
+        }
+    }
+
+    @FXML
     private void onEdit() {
         ProductDTO selected = productTable.getSelectionModel().getSelectedItem();
         if (selected != null)
@@ -270,6 +299,7 @@ public class ProductListController implements Initializable {
                 masterList.removeIf(dto -> dto.getId().equals(selected.getId()));
                 updateStatus();
                 log.info("Deleted product id={}", selected.getId());
+                com.jewelry.util.SnackbarUtil.showSuccess(productTable, "Product deleted successfully!");
             } catch (AppException ex) {
                 showError("Delete Failed", ex.getMessage());
             }

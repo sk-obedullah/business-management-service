@@ -1,6 +1,6 @@
 package com.jewelry.controller;
 
-import com.jewelry.config.AppContext;
+import com.jewelry.util.SnackbarUtil;
 import com.jewelry.dto.ProductDTO;
 import com.jewelry.entity.Product;
 import com.jewelry.exception.AppException;
@@ -8,13 +8,30 @@ import com.jewelry.service.ProductService;
 import com.jewelry.util.ProductMapper;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.VBox;
+import javafx.scene.Parent;
+import javafx.stage.FileChooser;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ResourceBundle;
+import java.util.UUID;
 
 /**
  * Controller for the Product Add/Edit modal dialog (ProductForm.fxml).
@@ -31,13 +48,23 @@ import java.util.ResourceBundle;
  * All validation is delegated to {@link ProductService}; the controller
  * only catches {@link AppException} and surfaces it as an Alert.
  */
+@Component
 public class ProductFormController implements Initializable {
 
     private static final Logger log = LoggerFactory.getLogger(ProductFormController.class);
 
+    @Autowired
+    private ProductService productService;
+
     // ── FXML Bindings ────────────────────────────────────────────────────────
     @FXML
     private Label lblTitle;
+    @FXML
+    private ImageView imgPreview;
+    @FXML
+    private VBox imagePlaceholder;
+    @FXML
+    private Button btnRemoveImage;
     @FXML
     private TextField txtName;
     @FXML
@@ -66,13 +93,10 @@ public class ProductFormController implements Initializable {
     private Label lblError;
 
     // ── State ────────────────────────────────────────────────────────────────
-    private final ProductService productService;
     private ProductDTO currentDTO; // null = Add mode
     private boolean saved = false;
-
-    public ProductFormController() {
-        this.productService = AppContext.getInstance().getProductService();
-    }
+    private String selectedImagePath;
+    private Path selectedImageFile;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -113,6 +137,34 @@ public class ProductFormController implements Initializable {
     // ── FXML Actions ─────────────────────────────────────────────────────────
 
     @FXML
+    private void onUploadImage() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select Product Image");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
+        );
+        java.io.File file = fileChooser.showOpenDialog(btnSave.getScene().getWindow());
+        if (file != null) {
+            selectedImageFile = file.toPath();
+            updateImagePreview(file.toURI().toString());
+            selectedImagePath = null; // Reset path until saved
+        }
+    }
+
+    @FXML
+    private void onRemoveImage() {
+        selectedImageFile = null;
+        selectedImagePath = null;
+        imgPreview.setImage(null);
+        imgPreview.setVisible(false);
+        imgPreview.setManaged(false);
+        imagePlaceholder.setVisible(true);
+        imagePlaceholder.setManaged(true);
+        btnRemoveImage.setVisible(false);
+        btnRemoveImage.setManaged(false);
+    }
+
+    @FXML
     private void onSave() {
         lblError.setVisible(false);
 
@@ -123,11 +175,13 @@ public class ProductFormController implements Initializable {
                 // Add mode
                 Product created = productService.createProduct(ProductMapper.toEntity(dto));
                 log.info("Product created via form: id={}", created.getId());
+                SnackbarUtil.showSuccess(btnSave, "Product added successfully!");
             } else {
                 // Edit mode
                 dto.setId(currentDTO.getId());
                 productService.updateProduct(ProductMapper.toEntity(dto));
                 log.info("Product updated via form: id={}", dto.getId());
+                SnackbarUtil.showSuccess(btnSave, "Product updated successfully!");
             }
 
             saved = true;
@@ -156,6 +210,28 @@ public class ProductFormController implements Initializable {
         txtSellingPrice.setText(dto.getSellingPrice() != null ? dto.getSellingPrice().toPlainString() : "");
         txtQuantity.setText(String.valueOf(dto.getQuantityOnHand()));
         txtDescription.setText(dto.getDescription() != null ? dto.getDescription() : "");
+        
+        selectedImagePath = dto.getImagePath();
+        if (selectedImagePath != null && !selectedImagePath.isBlank()) {
+            Path imagePath = Paths.get(System.getProperty("user.dir"), selectedImagePath);
+            if (Files.exists(imagePath)) {
+                updateImagePreview(imagePath.toUri().toString());
+            } else {
+                log.warn("Stored image not found at {}", imagePath);
+                onRemoveImage(); // reset UI
+            }
+        }
+    }
+
+    private void updateImagePreview(String uri) {
+        Image image = new Image(uri, 140, 140, true, true);
+        imgPreview.setImage(image);
+        imgPreview.setVisible(true);
+        imgPreview.setManaged(true);
+        imagePlaceholder.setVisible(false);
+        imagePlaceholder.setManaged(false);
+        btnRemoveImage.setVisible(true);
+        btnRemoveImage.setManaged(true);
     }
 
     private String safeTrim(String str) {
@@ -208,6 +284,37 @@ public class ProductFormController implements Initializable {
         dto.setSellingPrice(sellingPrice);
         dto.setQuantityOnHand(qty);
         dto.setDescription(txtDescription.getText().trim());
+        
+        // Handle Image Save
+        if (selectedImageFile != null) {
+            try {
+                Path uploadDir = Paths.get(System.getProperty("user.dir"), "data", "images", "products");
+                if (!Files.exists(uploadDir)) {
+                    Files.createDirectories(uploadDir);
+                }
+                
+                String extension = "";
+                String fileName = selectedImageFile.getFileName().toString();
+                int i = fileName.lastIndexOf('.');
+                if (i >= 0) {
+                    extension = fileName.substring(i);
+                }
+                
+                String newFileName = UUID.randomUUID().toString() + extension;
+                Path targetPath = uploadDir.resolve(newFileName);
+                
+                Files.copy(selectedImageFile, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                
+                // Store relative path
+                dto.setImagePath(Paths.get("data", "images", "products", newFileName).toString());
+            } catch (java.io.IOException e) {
+                log.error("Failed to save product image", e);
+                throw new AppException("Failed to save product image: " + e.getMessage());
+            }
+        } else {
+            dto.setImagePath(selectedImagePath); // keep existing if not changed, or null if removed
+        }
+        
         return dto;
     }
 

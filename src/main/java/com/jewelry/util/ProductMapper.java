@@ -35,6 +35,7 @@ public final class ProductMapper {
         dto.setSellingPrice(entity.getSellingPrice());
         dto.setQuantityOnHand(entity.getQuantityOnHand());
         dto.setDescription(entity.getDescription());
+        dto.setImagePath(entity.getImagePath());
         return dto;
     }
 
@@ -54,6 +55,7 @@ public final class ProductMapper {
         entity.setSellingPrice(dto.getSellingPrice());
         entity.setQuantityOnHand(dto.getQuantityOnHand());
         entity.setDescription(dto.getDescription());
+        entity.setImagePath(dto.getImagePath());
         return entity;
     }
 
@@ -69,5 +71,6 @@ public final class ProductMapper {
         target.setSellingPrice(dto.getSellingPrice());
         target.setQuantityOnHand(dto.getQuantityOnHand());
         target.setDescription(dto.getDescription());
+        target.setImagePath(dto.getImagePath());
     }
 }

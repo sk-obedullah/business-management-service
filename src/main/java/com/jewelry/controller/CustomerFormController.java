@@ -1,6 +1,6 @@
 package com.jewelry.controller;
 
-import com.jewelry.config.AppContext;
+import com.jewelry.util.SnackbarUtil;
 import com.jewelry.dto.CustomerDTO;
 import com.jewelry.entity.Customer;
 import com.jewelry.exception.AppException;
@@ -8,7 +8,13 @@ import com.jewelry.service.CustomerService;
 import com.jewelry.util.CustomerMapper;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.Parent;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,9 +37,13 @@ import java.util.ResourceBundle;
  * to {@link CustomerService}. This controller only catches
  * {@link AppException} and surfaces it as a styled inline error label.
  */
+@Component
 public class CustomerFormController implements Initializable {
 
     private static final Logger log = LoggerFactory.getLogger(CustomerFormController.class);
+
+    @Autowired
+    private CustomerService customerService;
 
     // ── FXML Bindings ────────────────────────────────────────────────────────
     @FXML
@@ -58,14 +68,9 @@ public class CustomerFormController implements Initializable {
     private Label lblError;
 
     // ── State ────────────────────────────────────────────────────────────────
-    private final CustomerService customerService;
     private CustomerDTO currentDTO;
     private boolean saved = false;
     private Runnable closeAction = () -> MainLayoutController.navigateTo("/fxml/customer/CustomerList.fxml");
-
-    public CustomerFormController() {
-        this.customerService = AppContext.getInstance().getCustomerService();
-    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -113,11 +118,13 @@ public class CustomerFormController implements Initializable {
                 // Add mode
                 Customer created = customerService.createCustomer(CustomerMapper.toEntity(dto));
                 log.info("Customer created via form: id={}", created.getId());
+                SnackbarUtil.showSuccess(btnSave, "Customer added successfully!");
             } else {
                 // Edit mode
                 dto.setId(currentDTO.getId());
                 customerService.updateCustomer(CustomerMapper.toEntity(dto));
                 log.info("Customer updated via form: id={}", dto.getId());
+                SnackbarUtil.showSuccess(btnSave, "Customer updated successfully!");
             }
 
             saved = true;

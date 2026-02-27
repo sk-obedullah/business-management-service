@@ -1,11 +1,19 @@
 package com.jewelry.controller;
 
-import com.jewelry.config.AppContext;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.Parent;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.ProgressIndicator;
+import javafx.concurrent.Task;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +35,7 @@ import java.util.function.Consumer;
  * All menu action handlers are {@code @FXML} methods that simply delegate to
  * {@link #loadView(String)} — zero business logic lives here.
  */
+@Component
 public class MainLayoutController implements Initializable {
 
     private static final Logger log = LoggerFactory.getLogger(MainLayoutController.class);
@@ -127,36 +136,50 @@ public class MainLayoutController implements Initializable {
      *                 an ID to edit)
      */
     public void loadView(String fxmlPath, Consumer<Object> initFunc) {
-        try {
-            FXMLLoader loader = new FXMLLoader(
-                    Objects.requireNonNull(getClass().getResource(fxmlPath),
-                            "FXML not found: " + fxmlPath));
+        // Show loading indicator
+        ProgressIndicator loaderIndicator = new ProgressIndicator();
+        loaderIndicator.setMaxSize(50, 50);
+        VBox loaderBox = new VBox(loaderIndicator);
+        loaderBox.setAlignment(javafx.geometry.Pos.CENTER);
+        contentArea.getChildren().setAll(loaderBox);
 
-            loader.setControllerFactory(clazz -> {
-                try {
-                    try {
-                        return clazz.getConstructor(AppContext.class)
-                                .newInstance(AppContext.getInstance());
-                    } catch (NoSuchMethodException ex) {
-                        return clazz.getDeclaredConstructor().newInstance();
-                    }
-                } catch (Exception ex) {
-                    throw new RuntimeException("Could not instantiate controller: " + clazz, ex);
+        Task<Parent> loadTask = new Task<>() {
+            @Override
+            protected Parent call() throws Exception {
+                FXMLLoader loader = new FXMLLoader(
+                        Objects.requireNonNull(getClass().getResource(fxmlPath),
+                                "FXML not found: " + fxmlPath));
+
+                // Use Spring to create controllers
+                loader.setControllerFactory(com.jewelry.config.SpringContext::getBean);
+
+                Parent view = loader.load();
+
+                if (initFunc != null) {
+                    Object controller = loader.getController();
+                    // Run initFunc on FX Application Thread if it modifies UI
+                    Platform.runLater(() -> initFunc.accept(controller));
                 }
-            });
-
-            Parent view = loader.load();
-
-            if (initFunc != null) {
-                Object controller = loader.getController();
-                initFunc.accept(controller);
+                return view;
             }
+        };
 
-            contentArea.getChildren().setAll(view);
+        loadTask.setOnSucceeded(e -> {
+            contentArea.getChildren().setAll(loadTask.getValue());
             log.info("Loaded view: {}", fxmlPath);
-        } catch (IOException e) {
-            log.error("Failed to load view: {}", fxmlPath, e);
-        }
+        });
+
+        loadTask.setOnFailed(e -> {
+            log.error("Failed to load view: {}", fxmlPath, loadTask.getException());
+            Label errorLabel = new Label("Failed to load view. Check logs.");
+            errorLabel.setStyle("-fx-text-fill: red;");
+            contentArea.getChildren().setAll(errorLabel);
+        });
+
+        // Run task on a background thread
+        Thread thread = new Thread(loadTask);
+        thread.setDaemon(true);
+        thread.start();
     }
 
     public void loadView(String fxmlPath) {

@@ -1,14 +1,19 @@
 package com.jewelry.repository;
 
 import com.jewelry.entity.Customer;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Customer-specific repository contract.
+ * Spring Data JPA repository for {@link Customer}.
  */
-public interface CustomerRepository extends BaseRepository<Customer, Long> {
+@Repository
+public interface CustomerRepository extends JpaRepository<Customer, Long> {
 
     Optional<Customer> findByEmail(String email);
 
@@ -16,5 +21,15 @@ public interface CustomerRepository extends BaseRepository<Customer, Long> {
 
     boolean existsByPhone(String phone);
 
-    List<Customer> search(String keyword);
+    /** Keyword search across name and phone. */
+    @Query("""
+            SELECT c FROM Customer c
+            WHERE LOWER(c.firstName) LIKE LOWER(CONCAT('%', :kw, '%'))
+               OR LOWER(c.lastName)  LIKE LOWER(CONCAT('%', :kw, '%'))
+               OR LOWER(c.email)     LIKE LOWER(CONCAT('%', :kw, '%'))
+               OR LOWER(c.phone)     LIKE LOWER(CONCAT('%', :kw, '%'))
+            """)
+    List<Customer> search(@Param("kw") String keyword);
+
+    List<Customer> findAllByOrderByLastNameAscFirstNameAsc();
 }

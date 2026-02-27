@@ -12,83 +12,55 @@ import com.jewelry.repository.ProductRepository;
 import com.jewelry.service.OrderService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.sql.DataSource;
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * Production implementation of {@link OrderService}.
  *
- * <p>
- * <strong>Most critical business rules:</strong>
- * <ol>
- * <li><b>Transactional order creation</b> — the order header, all order lines,
- * and product stock decrements are committed atomically. If any step fails,
- * the connection is rolled back so inventory stays consistent.</li>
- * <li><b>Price snapshot</b> — unit_price and cost_price are copied from the
- * product at order-creation time. Future product price changes do not
- * retroactively alter historical orders.</li>
- * <li><b>Stock deduction on create</b> — each line decrements
- * {@code product.quantity_on_hand}.</li>
- * <li><b>Stock restoration on cancel</b> — transitioning to CANCELLED
- * increments stock back.</li>
- * <li><b>FSM enforcement</b> — only valid status transitions are allowed.</li>
- * </ol>
+ * <p>All previously manual JDBC transaction management is replaced by
+ * {@code @Transactional} — Spring rolls back automatically on any
+ * unchecked exception.
  *
- * <p>
- * <strong>Spring Boot migration note:</strong> annotate with {@code @Service},
- * inject via constructor, and replace the manual JDBC transaction with
- * {@code @Transactional}. All business logic stays identical.
+ * <p><strong>Business rules enforced:</strong>
+ * <ol>
+ * <li>Transactional order creation — header, lines, and stock decrements committed atomically</li>
+ * <li>Price snapshot — unit_price and cost_price copied from Product at creation time</li>
+ * <li>Stock deduction on create — each line decrements product.quantity_on_hand</li>
+ * <li>Stock restoration on cancel — transitioning to CANCELLED increments stock back</li>
+ * <li>FSM enforcement — only valid status transitions allowed</li>
+ * </ol>
  */
+@Service
+@Transactional
 public class OrderServiceImpl implements OrderService {
 
     private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
 
-    private final OrderRepository orderRepository;
-    private final OrderLineRepository orderLineRepository;
-    private final ProductRepository productRepository;
-    private final DataSource dataSource;
+    @Autowired
+    private OrderRepository orderRepository;
 
-    public OrderServiceImpl(OrderRepository orderRepository,
-            OrderLineRepository orderLineRepository,
-            ProductRepository productRepository,
-            DataSource dataSource) {
-        this.orderRepository = orderRepository;
-        this.orderLineRepository = orderLineRepository;
-        this.productRepository = productRepository;
-        this.dataSource = dataSource;
-    }
+    @Autowired
+    private OrderLineRepository orderLineRepository;
 
-    /**
-     * Creates an order and all its lines atomically.
-     *
-     * <p>
-     * Steps executed inside a single JDBC transaction:
-     * <ol>
-     * <li>Validate each product exists and has sufficient stock</li>
-     * <li>Snapshot unit_price and cost_price from each Product</li>
-     * <li>Compute totalAmount from line sums</li>
-     * <li>INSERT order header</li>
-     * <li>INSERT each order_line</li>
-     * <li>Decrement product.quantity_on_hand for each line</li>
-     * </ol>
-     */
+    @Autowired
+    private ProductRepository productRepository;
+
     @Override
     public Order createOrder(Order order) {
         if (order == null)
             throw new IllegalArgumentException("Order must not be null");
         if (order.getCustomerId() == null)
             throw new IllegalArgumentException("Customer is required");
-        if (order.getLines() == null || order.getLines().isEmpty()) {
+        if (order.getLines() == null || order.getLines().isEmpty())
             throw new IllegalArgumentException("Order must have at least one item");
-        }
 
-        // ── 1. Validate products & build price snapshots ─────────────────────
+        // ── 1. Validate products & build price snapshots ──────────────────────
         for (OrderLine line : order.getLines()) {
             Product product = productRepository.findById(line.getProductId())
                     .orElseThrow(() -> new EntityNotFoundException("Product", line.getProductId()));
@@ -100,95 +72,75 @@ public class OrderServiceImpl implements OrderService {
                                 + ", Requested: " + line.getQuantity());
             }
 
-            // Snapshot prices
+            // Snapshot prices at time of order
             line.setUnitPrice(product.getSellingPrice());
             line.setCostPrice(product.getCostPrice());
             line.setProductName(product.getName());
             line.setProductSku(product.getSku());
+            // Link the JPA relationship
+            line.setProduct(product);
         }
 
-        // ── 2. Compute order total ────────────────────────────────────────────
+        // ── 2. Compute order total ─────────────────────────────────────────────
         BigDecimal total = order.getLines().stream()
                 .map(l -> l.getUnitPrice().multiply(BigDecimal.valueOf(l.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         order.setTotalAmount(total);
 
-        if (order.getStatus() == null)
-            order.setStatus(OrderStatus.PENDING);
-        if (order.getDiscount() == null)
-            order.setDiscount(BigDecimal.ZERO);
+        if (order.getStatus() == null) order.setStatus(OrderStatus.PENDING);
+        if (order.getDiscount() == null) order.setDiscount(BigDecimal.ZERO);
 
-        // ── 3. Persist atomically ─────────────────────────────────────────────
-        try (Connection conn = dataSource.getConnection()) {
-            conn.setAutoCommit(false);
-            try {
-                // 3a. Insert order header (uses the pool's connection directly)
-                Order saved = orderRepository.save(order);
-
-                // 3b. Insert each line
-                for (OrderLine line : order.getLines()) {
-                    line.setOrderId(saved.getId());
-                    orderLineRepository.save(line);
-                }
-
-                // 3c. Decrement stock
-                for (OrderLine line : order.getLines()) {
-                    decrementStock(conn, line.getProductId(), line.getQuantity());
-                }
-
-                conn.commit();
-                log.info("Order created id={} total={}", saved.getId(), total);
-                return saved;
-
-            } catch (Exception e) {
-                conn.rollback();
-                throw new ServiceException("Order creation rolled back: " + e.getMessage(), e);
-            } finally {
-                conn.setAutoCommit(true);
-            }
-        } catch (SQLException e) {
-            throw new ServiceException("Failed to acquire connection for order creation", e);
+        // ── 3. Link lines to order for cascade save ───────────────────────────
+        for (OrderLine line : order.getLines()) {
+            line.setOrder(order);
         }
+
+        // ── 4. Save — Spring @Transactional ensures full rollback on failure ───
+        // orderRepository.save() cascades to lines via CascadeType.ALL on Order.lines
+        Order saved = orderRepository.save(order);
+
+        // ── 5. Decrement stock using JPA ──────────────────────────────────────
+        for (OrderLine line : saved.getLines()) {
+            Product product = line.getProduct();
+            product.setQuantityOnHand(product.getQuantityOnHand() - line.getQuantity());
+            productRepository.save(product);
+        }
+
+        log.info("Order created id={} total={}", saved.getId(), total);
+        return saved;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<Order> findById(Long id) {
         return orderRepository.findById(id);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Order> findAll() {
-        List<Order> orders = orderRepository.findAll();
-        orders.forEach(o -> o.setLines(orderLineRepository.findByOrderId(o.getId())));
-        return orders;
+        return orderRepository.findAllByOrderByCreatedAtDesc();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Order> findByCustomerId(Long customerId) {
-        List<Order> orders = orderRepository.findByCustomerId(customerId);
-        orders.forEach(o -> o.setLines(orderLineRepository.findByOrderId(o.getId())));
-        return orders;
+        return orderRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Order> findByStatus(OrderStatus status) {
-        List<Order> orders = orderRepository.findByStatus(status);
-        orders.forEach(o -> o.setLines(orderLineRepository.findByOrderId(o.getId())));
-        return orders;
+        return orderRepository.findByStatusOrderByCreatedAtDesc(status);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Order loadWithLines(Long orderId) {
-        Order order = orderRepository.findById(orderId)
+        return orderRepository.findById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("Order", orderId));
-        order.setLines(orderLineRepository.findByOrderId(orderId));
-        return order;
     }
 
-    /**
-     * Advances order status with FSM validation.
-     * Restores stock if transitioning to CANCELLED.
-     */
     @Override
     public void updateStatus(Long orderId, OrderStatus newStatus) {
         Order order = orderRepository.findById(orderId)
@@ -196,42 +148,32 @@ public class OrderServiceImpl implements OrderService {
 
         validateTransition(order.getStatus(), newStatus);
 
-        // Restore stock on cancellation
         if (newStatus == OrderStatus.CANCELLED) {
-            List<OrderLine> lines = orderLineRepository.findByOrderId(orderId);
-            try (Connection conn = dataSource.getConnection()) {
-                conn.setAutoCommit(false);
-                try {
-                    for (OrderLine line : lines) {
-                        restoreStock(conn, line.getProductId(), line.getQuantity());
-                    }
-                    orderRepository.updateStatus(orderId, newStatus);
-                    conn.commit();
-                    log.info("Order id={} cancelled — stock restored for {} lines", orderId, lines.size());
-                } catch (Exception e) {
-                    conn.rollback();
-                    throw new ServiceException("Cancel rollback: " + e.getMessage(), e);
-                } finally {
-                    conn.setAutoCommit(true);
-                }
-            } catch (SQLException e) {
-                throw new ServiceException("Connection error during cancel", e);
+            // Restore stock for every line — all within the same @Transactional context
+            for (OrderLine line : order.getLines()) {
+                Product product = productRepository.findById(line.getProductId())
+                        .orElseThrow(() -> new EntityNotFoundException("Product", line.getProductId()));
+                product.setQuantityOnHand(product.getQuantityOnHand() + line.getQuantity());
+                productRepository.save(product);
             }
-        } else {
-            orderRepository.updateStatus(orderId, newStatus);
-            log.info("Order id={} status → {}", orderId, newStatus);
+            log.info("Order id={} cancelled — stock restored for {} lines", orderId, order.getLines().size());
         }
+
+        orderRepository.updateStatus(orderId, newStatus);
+        log.info("Order id={} status → {}", orderId, newStatus);
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
+    // ── Private helpers ──────────────────────────────────────────────────────
 
     private void validateTransition(OrderStatus current, OrderStatus next) {
         boolean valid = switch (current) {
-            case PENDING -> next == OrderStatus.PROCESSING || next == OrderStatus.CANCELLED;
+            case PENDING ->
+                next == OrderStatus.PROCESSING || next == OrderStatus.CANCELLED;
             case PROCESSING ->
                 next == OrderStatus.SHIPPED || next == OrderStatus.COMPLETED || next == OrderStatus.CANCELLED;
-            case SHIPPED -> next == OrderStatus.IN_TRANSIT || next == OrderStatus.DELIVERED
-                    || next == OrderStatus.COMPLETED || next == OrderStatus.CANCELLED;
+            case SHIPPED ->
+                next == OrderStatus.IN_TRANSIT || next == OrderStatus.DELIVERED
+                        || next == OrderStatus.COMPLETED || next == OrderStatus.CANCELLED;
             case IN_TRANSIT ->
                 next == OrderStatus.DELIVERED || next == OrderStatus.COMPLETED || next == OrderStatus.CANCELLED;
             case DELIVERED -> next == OrderStatus.COMPLETED;
@@ -239,24 +181,6 @@ public class OrderServiceImpl implements OrderService {
         };
         if (!valid) {
             throw new ServiceException("Invalid transition: " + current + " → " + next);
-        }
-    }
-
-    private void decrementStock(Connection conn, Long productId, int qty) throws SQLException {
-        String sql = "UPDATE product SET quantity_on_hand = quantity_on_hand - ?, updated_at = NOW() WHERE id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, qty);
-            ps.setLong(2, productId);
-            ps.executeUpdate();
-        }
-    }
-
-    private void restoreStock(Connection conn, Long productId, int qty) throws SQLException {
-        String sql = "UPDATE product SET quantity_on_hand = quantity_on_hand + ?, updated_at = NOW() WHERE id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, qty);
-            ps.setLong(2, productId);
-            ps.executeUpdate();
         }
     }
 }

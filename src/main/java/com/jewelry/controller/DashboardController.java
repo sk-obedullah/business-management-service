@@ -1,18 +1,28 @@
 package com.jewelry.controller;
 
-import com.jewelry.config.AppContext;
 import com.jewelry.dto.DashboardSummary;
 import com.jewelry.service.DashboardService;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
-import javafx.scene.chart.*;
-import javafx.scene.control.*;
-
-import javafx.scene.layout.*;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.PieChart;
+import javafx.scene.chart.XYChart;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.layout.TilePane;
+import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.net.URL;
@@ -24,20 +34,18 @@ import java.util.ResourceBundle;
  * <p>
  * All data is fetched asynchronously via a background {@link Task} so
  * the JavaFX Application Thread is never blocked on database calls.
- * The UI is assembled purely in Java here (dynamically building KPI cards and
- * injecting chart data), which keeps the FXML lean and reusable.
- *
- * <p>
- * <strong>Architecture rule:</strong> No SQL or business logic here.
- * Only presentation: binding data to controls.
  */
+@Component
 public class DashboardController implements Initializable {
 
     private static final Logger log = LoggerFactory.getLogger(DashboardController.class);
 
+    @Autowired
+    private DashboardService dashboardService;
+
     // ── FXML ─────────────────────────────────────────────────────────────────
     @FXML
-    private FlowPane kpiPane;
+    private TilePane kpiPane;
     @FXML
     private BarChart<String, Number> revenueChart;
     @FXML
@@ -62,12 +70,6 @@ public class DashboardController implements Initializable {
     private Label lblLastRefresh;
     @FXML
     private ProgressIndicator loadingIndicator;
-
-    private final DashboardService dashboardService;
-
-    public DashboardController() {
-        this.dashboardService = AppContext.getInstance().getDashboardService();
-    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -130,25 +132,23 @@ public class DashboardController implements Initializable {
                 kpiCard("⏳ Pending Orders", String.valueOf(s.getPendingOrders()), "#f39c12"),
                 kpiCard("👤 Customers", String.valueOf(s.getTotalCustomers()), "#1abc9c"),
                 kpiCard("💎 Products", String.valueOf(s.getTotalProducts()), "#e67e22"),
-                kpiCard("⚠ Low Stock", String.valueOf(s.getLowStockCount()), "#e74c3c"));
+                kpiCard("⚠️ Low Stock", String.valueOf(s.getLowStockCount()), "#e74c3c"));
     }
 
     private VBox kpiCard(String title, String value, String accentColor) {
         Label lblTitle = new Label(title);
-        lblTitle.setStyle("-fx-text-fill: #9e9e9e; -fx-font-size: 12px;");
+        lblTitle.setStyle("-fx-text-fill: #9e9e9e; -fx-font-size: 13px;");
 
         Label lblValue = new Label(value);
-        lblValue.setStyle("-fx-text-fill: " + accentColor + "; -fx-font-size: 22px; -fx-font-weight: bold;");
+        lblValue.setStyle("-fx-text-fill: " + accentColor + "; -fx-font-size: 26px; -fx-font-weight: bold;");
 
-        VBox card = new VBox(6, lblTitle, lblValue);
-        card.setPadding(new Insets(16, 20, 16, 20));
-        card.setPrefWidth(180);
-        card.setStyle(
-                "-fx-background-color: #16213e;" +
-                        "-fx-border-color: " + accentColor + "44;" +
-                        "-fx-border-width: 1;" +
-                        "-fx-border-radius: 8;" +
-                        "-fx-background-radius: 8;");
+        VBox card = new VBox(8, lblTitle, lblValue);
+        card.getStyleClass().add("kpi-card");
+
+        // Dynamic tile sizing (TilePane will use these)
+        card.setPrefWidth(240);
+        card.setMinHeight(100);
+
         return card;
     }
 
@@ -200,7 +200,14 @@ public class DashboardController implements Initializable {
                 setText(empty || v == null ? null : "₹ " + v.toPlainString());
             }
         });
-        topProductsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        // Make columns proportional so they stretch to fill the table width
+        colTopName.prefWidthProperty().bind(topProductsTable.widthProperty().multiply(0.40));
+        colTopSku.prefWidthProperty().bind(topProductsTable.widthProperty().multiply(0.25));
+        colTopUnits.prefWidthProperty().bind(topProductsTable.widthProperty().multiply(0.15));
+        colTopRevenue.prefWidthProperty().bind(topProductsTable.widthProperty().multiply(0.20));
+
+        topProductsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
     }
 
     private void populateTopProducts(DashboardSummary s) {
@@ -217,7 +224,7 @@ public class DashboardController implements Initializable {
             lowStockList.getItems().add("✅  All products have sufficient stock.");
         } else {
             s.getLowStockProducts().forEach(p -> lowStockList.getItems().add(
-                    "⚠  " + p.name() + " [" + p.sku() + "]  —  " + p.quantityOnHand() + " left"));
+                    "⚠️  " + p.name() + " [" + p.sku() + "]  —  " + p.quantityOnHand() + " left"));
         }
     }
 }

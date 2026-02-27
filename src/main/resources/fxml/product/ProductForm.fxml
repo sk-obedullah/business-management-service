@@ -3,6 +3,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.*?>
+<?import javafx.scene.image.ImageView?>
 
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
@@ -20,67 +21,85 @@
     <ScrollPane fitToWidth="true" styleClass="form-scroll" VBox.vgrow="ALWAYS">
         <padding><Insets top="4" right="4" bottom="4" left="4"/></padding>
 
-        <GridPane hgap="16" vgap="14" styleClass="form-grid">
+        <!-- minWidth prevents fields from crunching; parent ScrollPane will horizontal scroll instead -->
+        <GridPane hgap="16" vgap="14" styleClass="form-grid" minWidth="500">
             <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
+
+            <!-- Row Image Upload -->
+            <VBox spacing="8" alignment="CENTER"
+                  GridPane.columnIndex="0" GridPane.rowIndex="0"
+                  GridPane.columnSpan="2">
+                <StackPane prefHeight="150" prefWidth="150" maxWidth="150" styleClass="dashboard-card" style="-fx-background-color: #1a264a; -fx-background-radius: 8;">
+                    <ImageView fx:id="imgPreview" fitWidth="140" fitHeight="140" preserveRatio="true" visible="false" managed="false"/>
+                    <VBox fx:id="imagePlaceholder" alignment="CENTER" spacing="6">
+                        <Label text="📷" style="-fx-font-size: 32px; -fx-text-fill: #3a4b7c;"/>
+                        <Label text="No Image" styleClass="label-muted" style="-fx-font-size: 11px;"/>
+                    </VBox>
+                </StackPane>
+                <HBox spacing="8" alignment="CENTER">
+                    <Button text="Upload Image" onAction="#onUploadImage" styleClass="btn-secondary" style="-fx-font-size: 11px; -fx-padding: 4 10;"/>
+                    <Button fx:id="btnRemoveImage" text="✕" onAction="#onRemoveImage" styleClass="btn-danger" style="-fx-font-size: 11px; -fx-padding: 4 8;" visible="false" managed="false"/>
+                </HBox>
+            </VBox>
 
             <!-- Row 0: Name | SKU -->
             <Label text="Product Name *" styleClass="form-label"
-                   GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                   GridPane.columnIndex="0" GridPane.rowIndex="1"/>
             <TextField fx:id="txtName" promptText="e.g. 18K Gold Ring"
-                       GridPane.columnIndex="0" GridPane.rowIndex="1"
+                       GridPane.columnIndex="0" GridPane.rowIndex="2"
                        GridPane.hgrow="ALWAYS"/>
 
             <Label text="SKU *" styleClass="form-label"
-                   GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                   GridPane.columnIndex="1" GridPane.rowIndex="1"/>
             <TextField fx:id="txtSku" promptText="e.g. RING-AU-018K-001"
-                       GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                       GridPane.columnIndex="1" GridPane.rowIndex="2"/>
 
             <!-- Row 2: Category | Metal -->
             <Label text="Category *" styleClass="form-label"
-                   GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+                   GridPane.columnIndex="0" GridPane.rowIndex="3"/>
             <ComboBox fx:id="cboCategory" maxWidth="1.7976931348623157E308"
-                      GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+                      GridPane.columnIndex="0" GridPane.rowIndex="4"/>
 
             <Label text="Metal *" styleClass="form-label"
-                   GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+                   GridPane.columnIndex="1" GridPane.rowIndex="3"/>
             <ComboBox fx:id="cboMetal" maxWidth="1.7976931348623157E308"
-                      GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+                      GridPane.columnIndex="1" GridPane.rowIndex="4"/>
 
             <!-- Row 4: Purity | Weight -->
             <Label text="Purity" styleClass="form-label"
-                   GridPane.columnIndex="0" GridPane.rowIndex="4"/>
+                   GridPane.columnIndex="0" GridPane.rowIndex="5"/>
             <TextField fx:id="txtPurity" promptText="e.g. 18K, 22K, 925"
-                       GridPane.columnIndex="0" GridPane.rowIndex="5"/>
+                       GridPane.columnIndex="0" GridPane.rowIndex="6"/>
 
             <Label text="Weight (grams)" styleClass="form-label"
-                   GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+                   GridPane.columnIndex="1" GridPane.rowIndex="5"/>
             <TextField fx:id="txtWeight" promptText="e.g. 5.25"
-                       GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+                       GridPane.columnIndex="1" GridPane.rowIndex="6"/>
 
             <!-- Row 6: Cost | Selling Price -->
             <Label text="Cost Price (₹) *" styleClass="form-label"
-                   GridPane.columnIndex="0" GridPane.rowIndex="6"/>
+                   GridPane.columnIndex="0" GridPane.rowIndex="7"/>
             <TextField fx:id="txtCostPrice" promptText="e.g. 15000"
-                       GridPane.columnIndex="0" GridPane.rowIndex="7"/>
+                       GridPane.columnIndex="0" GridPane.rowIndex="8"/>
 
             <Label text="Selling Price (₹) *" styleClass="form-label"
-                   GridPane.columnIndex="1" GridPane.rowIndex="6"/>
+                   GridPane.columnIndex="1" GridPane.rowIndex="7"/>
             <TextField fx:id="txtSellingPrice" promptText="e.g. 22000"
-                       GridPane.columnIndex="1" GridPane.rowIndex="7"/>
+                       GridPane.columnIndex="1" GridPane.rowIndex="8"/>
 
             <!-- Row 8: Quantity -->
             <Label text="Quantity On Hand" styleClass="form-label"
-                   GridPane.columnIndex="0" GridPane.rowIndex="8"/>
+                   GridPane.columnIndex="0" GridPane.rowIndex="9"/>
             <TextField fx:id="txtQuantity" promptText="0"
-                       GridPane.columnIndex="0" GridPane.rowIndex="9"/>
+                       GridPane.columnIndex="0" GridPane.rowIndex="10"/>
 
             <!-- Row 10: Description (full width) -->
             <Label text="Description" styleClass="form-label"
-                   GridPane.columnIndex="0" GridPane.rowIndex="10"
+                   GridPane.columnIndex="0" GridPane.rowIndex="11"
                    GridPane.columnSpan="2"/>
             <TextArea fx:id="txtDescription" promptText="Optional product notes…"
                       prefRowCount="3" wrapText="true"
-                      GridPane.columnIndex="0" GridPane.rowIndex="11"
+                      GridPane.columnIndex="0" GridPane.rowIndex="12"
                       GridPane.columnSpan="2" GridPane.hgrow="ALWAYS"/>
 
             <!-- Column constraints -->

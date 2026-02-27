@@ -21,81 +21,91 @@
     </HBox>
 
     <!-- ── Body ──────────────────────────────────────────────── -->
-    <HBox VBox.vgrow="ALWAYS" spacing="0">
+    <SplitPane VBox.vgrow="ALWAYS" dividerPositions="0.35" style="-fx-background-color: transparent; -fx-padding: 0;">
+        <!-- Prevent the entire view from shrinking beyond a minimum usable width -->
+        <minWidth>850</minWidth>
 
         <!-- Left panel: customer, product picker, notes, discount -->
-        <VBox spacing="14" prefWidth="320" styleClass="form-grid">
-            <padding><Insets top="20" right="16" bottom="20" left="24"/></padding>
+        <!-- Wrapped in a ScrollPane to prevent vertical clipping on short screens -->
+        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" 
+                    minWidth="340" vbarPolicy="AS_NEEDED">
+            <VBox spacing="16" styleClass="form-grid">
+                <padding><Insets top="20" right="16" bottom="20" left="24"/></padding>
 
-            <!-- Customer -->
-            <HBox alignment="BOTTOM_LEFT" spacing="8">
-                <Label text="Customer *" styleClass="form-label"/>
-                <Region HBox.hgrow="ALWAYS"/>
-                <Button fx:id="btnNewCustomer" text="＋ New" onAction="#onNewCustomer" 
-                        style="-fx-font-size: 10px; -fx-padding: 3 8;" styleClass="btn-secondary"/>
-            </HBox>
-            <TextField fx:id="txtCustomerSearch" promptText="🔍 Search (name or phone)…" styleClass="search-field"/>
-            <ComboBox fx:id="cboCustomer" maxWidth="1.7976931348623157E308"/>
-
-            <!-- Read-only Customer Info (Hidden by default, shown in View mode) -->
-            <VBox fx:id="customerInfoCard" spacing="6" visible="false" managed="false"
-                  style="-fx-background-color: rgba(255,255,255,0.03); -fx-padding: 12; -fx-background-radius: 6; -fx-border-color: rgba(255,255,255,0.1); -fx-border-radius: 6;">
-                <Label fx:id="lblCustomerName"    text="" style="-fx-font-weight: bold; -fx-text-fill: white;"/>
-                <Label fx:id="lblCustomerPhone"   text="" styleClass="label-muted" style="-fx-font-size: 11px;"/>
-                <Label fx:id="lblCustomerEmail"   text="" styleClass="label-muted" style="-fx-font-size: 11px;"/>
-                <Label fx:id="lblCustomerAddress" text="" styleClass="label-muted" style="-fx-font-size: 11px;" wrapText="true"/>
-            </VBox>
-
-            <Separator/>
-
-            <!-- Product Picker -->
-            <VBox fx:id="addProductSection" spacing="14">
-                <Label text="Add Product" styleClass="form-label"/>
-
-                <Label text="Product" styleClass="form-label"/>
-                <ComboBox fx:id="cboProduct" maxWidth="1.7976931348623157E308"/>
-
-                <HBox spacing="8" alignment="CENTER_LEFT">
-                    <VBox spacing="4" HBox.hgrow="ALWAYS">
-                        <Label text="Quantity" styleClass="form-label"/>
-                        <TextField fx:id="txtQuantity" promptText="e.g. 2" maxWidth="80"/>
+                <!-- Card 1: Customer -->
+                <VBox styleClass="form-card" spacing="12">
+                    <Label text="Customer Details" styleClass="form-card-title" maxWidth="Infinity"/>
+                    <VBox fx:id="customerSelectionPane" spacing="12">
+                        <HBox alignment="BOTTOM_LEFT" spacing="8">
+                            <Label text="Select Customer" styleClass="form-label"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Button fx:id="btnNewCustomer" text="＋ New" onAction="#onNewCustomer" 
+                                    style="-fx-font-size: 10px; -fx-padding: 3 8;" styleClass="btn-secondary"/>
+                        </HBox>
+                        <TextField fx:id="txtCustomerSearch" promptText="🔍 Search (name or phone)…" styleClass="search-field"/>
+                        <ComboBox fx:id="cboCustomer" maxWidth="1.7976931348623157E308"/>
                     </VBox>
-                    <VBox spacing="4" alignment="BOTTOM_LEFT">
-                        <Label fx:id="lblStock" text="" style="-fx-font-size:11px;"/>
-                        <Label fx:id="lblUnitPrice" text="" style="-fx-font-size:11px; -fx-text-fill:#e2b04a;"/>
+
+                    <!-- Read-only Customer Info (Hidden by default, shown in View mode) -->
+                    <VBox fx:id="customerInfoCard" spacing="6" visible="false" managed="false">
+                        <Label fx:id="lblCustomerName"    text="" style="-fx-font-weight: bold; -fx-text-fill: white; -fx-font-size: 14px;"/>
+                        <Label fx:id="lblCustomerPhone"   text="" styleClass="label-muted"/>
+                        <Label fx:id="lblCustomerEmail"   text="" styleClass="label-muted"/>
+                        <Label fx:id="lblCustomerAddress" text="" styleClass="label-muted" wrapText="true"/>
                     </VBox>
-                </HBox>
+                </VBox>
 
-                <Button fx:id="btnAddItem" text="＋ Add to Order" onAction="#onAddItem"
-                        styleClass="btn-secondary" maxWidth="1.7976931348623157E308"/>
+                <!-- Card 2: Product Picker -->
+                <VBox fx:id="addProductSection" styleClass="form-card" spacing="12">
+                    <Label text="Add Product" styleClass="form-card-title" maxWidth="Infinity"/>
 
-                <Separator/>
+                    <Label text="Search Product" styleClass="form-label"/>
+                    <ComboBox fx:id="cboProduct" maxWidth="1.7976931348623157E308"/>
+
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <VBox spacing="6">
+                            <Label text="Quantity" styleClass="form-label"/>
+                            <TextField fx:id="txtQuantity" promptText="e.g. 2" prefWidth="80"/>
+                        </VBox>
+                        <VBox spacing="4" alignment="BOTTOM_LEFT" HBox.hgrow="ALWAYS">
+                            <Label fx:id="lblStock" text="" style="-fx-font-size:11px;"/>
+                            <Label fx:id="lblUnitPrice" text="" style="-fx-font-size:12px; -fx-text-fill:#e2b04a; -fx-font-weight:bold;"/>
+                        </VBox>
+                    </HBox>
+
+                    <Button fx:id="btnAddItem" text="＋ Add Item" onAction="#onAddItem"
+                            styleClass="btn-secondary" maxWidth="1.7976931348623157E308"/>
+                </VBox>
+
+                <!-- Card 3: Additional Details -->
+                <VBox styleClass="form-card" spacing="12">
+                    <Label text="Order Options" styleClass="form-card-title" maxWidth="Infinity"/>
+                    
+                    <Label text="Discount (₹)" styleClass="form-label"/>
+                    <TextField fx:id="txtDiscount" promptText="0.00"/>
+
+                    <Label text="Order Notes" styleClass="form-label"/>
+                    <TextArea fx:id="txtNotes" prefRowCount="3" wrapText="true"
+                              promptText="Special instructions, references…"/>
+                </VBox>
+
+                <Region VBox.vgrow="ALWAYS"/>
+
+                <!-- Running total -->
+                <VBox styleClass="form-card" alignment="CENTER" spacing="8" style="-fx-background-color: #0d1b2a; -fx-border-color: #e2b04a; -fx-border-width: 1;">
+                    <Label fx:id="lblOrderTotal" text="Subtotal: ₹0   |   Net: ₹0"
+                           style="-fx-text-fill: #e2b04a; -fx-font-weight: bold; -fx-font-size: 13px;"
+                           wrapText="true"/>
+                </VBox>
             </VBox>
-
-            <!-- Discount -->
-            <Label text="Discount (₹)" styleClass="form-label"/>
-            <TextField fx:id="txtDiscount" promptText="0.00"/>
-
-            <!-- Notes -->
-            <Label text="Order Notes" styleClass="form-label"/>
-            <TextArea fx:id="txtNotes" prefRowCount="3" wrapText="true"
-                      promptText="Special instructions, references…"/>
-
-            <Region VBox.vgrow="ALWAYS"/>
-
-            <!-- Running total -->
-            <Label fx:id="lblOrderTotal" text="Subtotal: ₹0   |   Net: ₹0"
-                   style="-fx-text-fill: #e2b04a; -fx-font-weight: bold; -fx-font-size: 12px;"
-                   wrapText="true"/>
-        </VBox>
+        </ScrollPane>
 
         <!-- Right panel: line-item table -->
-        <VBox VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" spacing="0"
-              style="-fx-border-color: #0f3460; -fx-border-width: 0 0 0 1;">
-            <padding><Insets top="20" right="24" bottom="0" left="16"/></padding>
+        <VBox VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" spacing="12"
+              style="-fx-background-color: #1a1a2e;">
+            <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
 
-            <Label text="Order Items" styleClass="form-label"/>
-            <Region prefHeight="6"/>
+            <Label text="Order Items" styleClass="form-card-title" maxWidth="Infinity"/>
 
             <TableView fx:id="lineTable" VBox.vgrow="ALWAYS" styleClass="table-view">
                 <columns>
@@ -112,7 +122,7 @@
                 </placeholder>
             </TableView>
         </VBox>
-    </HBox>
+    </SplitPane>
 
     <!-- ── Error Banner ─────────────────────────────────────── -->
     <Label fx:id="lblError" text="" styleClass="error-label" wrapText="true" visible="false">

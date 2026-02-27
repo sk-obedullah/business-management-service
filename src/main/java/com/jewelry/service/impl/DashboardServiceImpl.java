@@ -3,68 +3,46 @@ package com.jewelry.service.impl;
 import com.jewelry.dto.DashboardSummary;
 import com.jewelry.dto.DashboardSummary.LowStockProduct;
 import com.jewelry.dto.DashboardSummary.TopProduct;
-import com.jewelry.exception.ServiceException;
 import com.jewelry.service.DashboardService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.sql.DataSource;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.sql.*;
-
 import java.util.*;
 
 /**
- * JDBC implementation of {@link DashboardService}.
- *
- * <p>
- * Each method fires one focused SQL query. All are read-only.
- * They are assembled into a single {@link DashboardSummary} in
- * {@link #getSummary()}.
- *
- * <p>
- * <strong>Query design notes:</strong>
- * <ul>
- * <li>Revenue/profit only counts COMPLETED orders to avoid
- * inflating figures with pending/cancelled ones.</li>
- * <li>Monthly revenue uses MySQL {@code DATE_FORMAT} to bucket
- * by "YYYY-MM"; results are re-formatted to "MMM yyyy" in Java.</li>
- * <li>Top products join {@code order_line} with {@code `order`} and
- * filter by COMPLETED status before aggregating.</li>
- * <li>Low-stock threshold is a constant (5) matching
- * {@code ProductListController}.</li>
- * </ul>
+ * Implementation of {@link DashboardService} using JPA native queries.
+ * All queries are read-only; Spring manages the transaction context.
  */
+@Service
+@Transactional(readOnly = true)
 public class DashboardServiceImpl implements DashboardService {
 
     private static final Logger log = LoggerFactory.getLogger(DashboardServiceImpl.class);
     private static final int LOW_STOCK_THRESHOLD = 5;
 
-    private final DataSource dataSource;
-
-    public DashboardServiceImpl(DataSource dataSource) {
-        this.dataSource = dataSource;
-    }
+    @PersistenceContext
+    private EntityManager em;
 
     @Override
     public DashboardSummary getSummary() {
         log.debug("Building dashboard summary...");
         DashboardSummary s = new DashboardSummary();
 
-        try (Connection conn = dataSource.getConnection()) {
-            loadRevenuAndProfit(conn, s);
-            loadOrderCounts(conn, s);
-            loadEntityCounts(conn, s);
-            loadMonthlyRevenue(conn, s);
-            loadOrdersByStatus(conn, s);
-            loadTopProducts(conn, s);
-            loadLowStockProducts(conn, s);
-        } catch (SQLException e) {
-            throw new ServiceException("Dashboard query failed", e);
-        }
+        loadRevenue(s);
+        loadOrderCounts(s);
+        loadEntityCounts(s);
+        loadMonthlyRevenue(s);
+        loadOrdersByStatus(s);
+        loadTopProducts(s);
+        loadLowStockProducts(s);
 
-        // Compute margin %
         if (s.getTotalRevenue().compareTo(BigDecimal.ZERO) > 0) {
             s.setProfitMarginPct(
                     s.getTotalProfit()
@@ -73,72 +51,47 @@ public class DashboardServiceImpl implements DashboardService {
                             .setScale(1, RoundingMode.HALF_UP));
         }
 
-        log.debug("Dashboard summary built: revenue={} profit={}",
-                s.getTotalRevenue(), s.getTotalProfit());
+        log.debug("Dashboard summary built: revenue={} profit={}", s.getTotalRevenue(), s.getTotalProfit());
         return s;
     }
 
     // ── Individual query helpers ──────────────────────────────────────────────
 
-    private void loadRevenuAndProfit(Connection conn, DashboardSummary s) throws SQLException {
+    @SuppressWarnings("unchecked")
+    private void loadRevenue(DashboardSummary s) {
         String sql = """
                 SELECT
-                  COALESCE(SUM(o.total_amount - COALESCE(o.discount,0)), 0)   AS revenue,
-                  COALESCE(SUM(ol.quantity * (ol.unit_price - ol.cost_price)), 0) AS profit
+                  COALESCE(SUM(o.total_amount - COALESCE(o.discount,0)), 0)        AS revenue,
+                  COALESCE(SUM(ol.quantity * (ol.unit_price - ol.cost_price)), 0)  AS profit
                 FROM "order" o
                 JOIN order_line ol ON ol.order_id = o.id
                 WHERE o.status = 'COMPLETED'
                 """;
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                s.setTotalRevenue(rs.getBigDecimal("revenue"));
-                s.setTotalProfit(rs.getBigDecimal("profit"));
-            }
-        }
+        Object[] row = (Object[]) em.createNativeQuery(sql).getSingleResult();
+        s.setTotalRevenue(toBigDecimal(row[0]));
+        s.setTotalProfit(toBigDecimal(row[1]));
     }
 
-    private void loadOrderCounts(Connection conn, DashboardSummary s) throws SQLException {
-        // Orders created today
+    private void loadOrderCounts(DashboardSummary s) {
         String todaySql = """
                 SELECT COUNT(*) FROM "order"
                 WHERE CAST(created_at AS DATE) = CURRENT_DATE
                 """;
-        try (PreparedStatement ps = conn.prepareStatement(todaySql);
-                ResultSet rs = ps.executeQuery()) {
-            if (rs.next())
-                s.setOrdersToday(rs.getLong(1));
-        }
+        s.setOrdersToday(toLong(em.createNativeQuery(todaySql).getSingleResult()));
 
-        // Pending orders
         String pendingSql = "SELECT COUNT(*) FROM \"order\" WHERE status = 'PENDING'";
-        try (PreparedStatement ps = conn.prepareStatement(pendingSql);
-                ResultSet rs = ps.executeQuery()) {
-            if (rs.next())
-                s.setPendingOrders(rs.getLong(1));
-        }
+        s.setPendingOrders(toLong(em.createNativeQuery(pendingSql).getSingleResult()));
     }
 
-    private void loadEntityCounts(Connection conn, DashboardSummary s) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM customer");
-                ResultSet rs = ps.executeQuery()) {
-            if (rs.next())
-                s.setTotalCustomers(rs.getLong(1));
-        }
-        try (PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM product");
-                ResultSet rs = ps.executeQuery()) {
-            if (rs.next())
-                s.setTotalProducts(rs.getLong(1));
-        }
+    private void loadEntityCounts(DashboardSummary s) {
+        s.setTotalCustomers(toLong(em.createNativeQuery("SELECT COUNT(*) FROM customer").getSingleResult()));
+        s.setTotalProducts(toLong(em.createNativeQuery("SELECT COUNT(*) FROM product").getSingleResult()));
         String lowSql = "SELECT COUNT(*) FROM product WHERE quantity_on_hand <= " + LOW_STOCK_THRESHOLD;
-        try (PreparedStatement ps = conn.prepareStatement(lowSql);
-                ResultSet rs = ps.executeQuery()) {
-            if (rs.next())
-                s.setLowStockCount(rs.getLong(1));
-        }
+        s.setLowStockCount(toLong(em.createNativeQuery(lowSql).getSingleResult()));
     }
 
-    private void loadMonthlyRevenue(Connection conn, DashboardSummary s) throws SQLException {
+    @SuppressWarnings("unchecked")
+    private void loadMonthlyRevenue(DashboardSummary s) {
         String sql = """
                 SELECT
                   FORMATDATETIME(o.created_at, 'yyyy-MM') AS ym,
@@ -150,41 +103,35 @@ public class DashboardServiceImpl implements DashboardService {
                 ORDER BY ym ASC
                 """;
         Map<String, BigDecimal> monthly = new LinkedHashMap<>();
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                String ym = rs.getString("ym"); // e.g. "2025-01"
-                String label = formatYearMonth(ym); // e.g. "Jan 2025"
-                monthly.put(label, rs.getBigDecimal("revenue"));
-            }
+        List<Object[]> rows = em.createNativeQuery(sql).getResultList();
+        for (Object[] r : rows) {
+            String label = formatYearMonth((String) r[0]);
+            monthly.put(label, toBigDecimal(r[1]));
         }
         s.setMonthlyRevenue(monthly);
     }
 
-    private void loadOrdersByStatus(Connection conn, DashboardSummary s) throws SQLException {
+    @SuppressWarnings("unchecked")
+    private void loadOrdersByStatus(DashboardSummary s) {
         String sql = "SELECT status, COUNT(*) AS cnt FROM \"order\" GROUP BY status";
         Map<String, Long> map = new LinkedHashMap<>();
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                // Capitalise first letter for display
-                String raw = rs.getString("status");
-                String display = raw.substring(0, 1).toUpperCase() + raw.substring(1).toLowerCase();
-                map.put(display, rs.getLong("cnt"));
-            }
+        List<Object[]> rows = em.createNativeQuery(sql).getResultList();
+        for (Object[] r : rows) {
+            String raw = (String) r[0];
+            String display = raw.substring(0, 1).toUpperCase() + raw.substring(1).toLowerCase();
+            map.put(display, toLong(r[1]));
         }
         s.setOrdersByStatus(map);
     }
 
-    private void loadTopProducts(Connection conn, DashboardSummary s) throws SQLException {
+    @SuppressWarnings("unchecked")
+    private void loadTopProducts(DashboardSummary s) {
         String sql = """
-                SELECT
-                  p.name,
-                  p.sku,
-                  SUM(ol.quantity)                                      AS units_sold,
-                  SUM(ol.quantity * ol.unit_price)                      AS revenue
+                SELECT p.name, p.sku,
+                       SUM(ol.quantity)               AS units_sold,
+                       SUM(ol.quantity * ol.unit_price) AS revenue
                 FROM order_line ol
-                JOIN "order" o ON o.id = ol.order_id
+                JOIN "order"  o ON o.id = ol.order_id
                 JOIN product  p ON p.id = ol.product_id
                 WHERE o.status = 'COMPLETED'
                 GROUP BY p.id, p.name, p.sku
@@ -192,43 +139,46 @@ public class DashboardServiceImpl implements DashboardService {
                 LIMIT 5
                 """;
         List<TopProduct> list = new ArrayList<>();
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                list.add(new TopProduct(
-                        rs.getString("name"),
-                        rs.getString("sku"),
-                        rs.getLong("units_sold"),
-                        rs.getBigDecimal("revenue")));
-            }
+        List<Object[]> rows = em.createNativeQuery(sql).getResultList();
+        for (Object[] r : rows) {
+            list.add(new TopProduct((String) r[0], (String) r[1], toLong(r[2]), toBigDecimal(r[3])));
         }
         s.setTopProducts(list);
     }
 
-    private void loadLowStockProducts(Connection conn, DashboardSummary s) throws SQLException {
+    @SuppressWarnings("unchecked")
+    private void loadLowStockProducts(DashboardSummary s) {
         String sql = """
                 SELECT name, sku, quantity_on_hand
                 FROM product
-                WHERE quantity_on_hand <= ?
+                WHERE quantity_on_hand <= :threshold
                 ORDER BY quantity_on_hand ASC
                 LIMIT 10
                 """;
         List<LowStockProduct> list = new ArrayList<>();
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, LOW_STOCK_THRESHOLD);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    list.add(new LowStockProduct(
-                            rs.getString("name"),
-                            rs.getString("sku"),
-                            rs.getInt("quantity_on_hand")));
-                }
-            }
+        List<Object[]> rows = em.createNativeQuery(sql)
+                .setParameter("threshold", LOW_STOCK_THRESHOLD)
+                .getResultList();
+        for (Object[] r : rows) {
+            list.add(new LowStockProduct((String) r[0], (String) r[1], ((Number) r[2]).intValue()));
         }
         s.setLowStockProducts(list);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Utility ───────────────────────────────────────────────────────────────
+
+    private BigDecimal toBigDecimal(Object o) {
+        if (o == null) return BigDecimal.ZERO;
+        if (o instanceof BigDecimal bd) return bd;
+        return new BigDecimal(o.toString());
+    }
+
+    private long toLong(Object o) {
+        if (o == null) return 0L;
+        if (o instanceof BigInteger bi) return bi.longValue();
+        if (o instanceof Number n) return n.longValue();
+        return Long.parseLong(o.toString());
+    }
 
     /** Converts "2025-01" → "Jan 2025" */
     private String formatYearMonth(String ym) {

@@ -41,6 +41,8 @@
                 onAction="#onRefresh" styleClass="btn-secondary"/>
         <Button fx:id="btnAdd"     text="＋ Add Product"
                 onAction="#onAdd"    styleClass="btn-primary"/>
+        <Button fx:id="btnView"    text="👁 View"
+                onAction="#onView"   styleClass="btn-secondary"/>
         <Button fx:id="btnEdit"    text="✎ Edit"
                 onAction="#onEdit"   styleClass="btn-secondary"/>
         <Button fx:id="btnDelete"  text="✕ Delete"
@@ -50,15 +52,15 @@
     <!-- ── Table ─────────────────────────────────────────────── -->
     <TableView fx:id="productTable" VBox.vgrow="ALWAYS" styleClass="table-view">
         <columns>
-            <TableColumn fx:id="colName"     text="Product Name"  prefWidth="200"/>
-            <TableColumn fx:id="colSku"      text="SKU"           prefWidth="130"/>
-            <TableColumn fx:id="colCategory" text="Category"      prefWidth="100"/>
-            <TableColumn fx:id="colMetal"    text="Metal"         prefWidth="90"/>
-            <TableColumn fx:id="colPurity"   text="Purity"        prefWidth="70"/>
-            <TableColumn fx:id="colCost"     text="Cost (₹)"      prefWidth="100"/>
-            <TableColumn fx:id="colSell"     text="Sell (₹)"      prefWidth="100"/>
-            <TableColumn fx:id="colMargin"   text="Margin %"      prefWidth="90"/>
-            <TableColumn fx:id="colQty"      text="Qty"           prefWidth="60"/>
+            <TableColumn fx:id="colName"     text="Product Name"  prefWidth="200" minWidth="150" />
+            <TableColumn fx:id="colSku"      text="SKU"           prefWidth="130" minWidth="100" />
+            <TableColumn fx:id="colCategory" text="Category"      prefWidth="100" minWidth="90" />
+            <TableColumn fx:id="colMetal"    text="Metal"         prefWidth="90"  minWidth="80" />
+            <TableColumn fx:id="colPurity"   text="Purity"        prefWidth="70"  minWidth="60" />
+            <TableColumn fx:id="colCost"     text="Cost (₹)"      prefWidth="100" minWidth="80" />
+            <TableColumn fx:id="colSell"     text="Sell (₹)"      prefWidth="100" minWidth="80" />
+            <TableColumn fx:id="colMargin"   text="Margin %"      prefWidth="90"  minWidth="70" />
+            <TableColumn fx:id="colQty"      text="Qty"           prefWidth="60"  minWidth="50" />
         </columns>
         <placeholder>
             <Label text="No products found. Click '＋ Add Product' to get started."

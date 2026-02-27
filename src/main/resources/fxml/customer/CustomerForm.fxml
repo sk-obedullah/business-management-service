@@ -20,7 +20,8 @@
     <ScrollPane fitToWidth="true" styleClass="form-scroll" VBox.vgrow="ALWAYS">
         <padding><Insets top="4" right="4" bottom="4" left="4"/></padding>
 
-        <GridPane hgap="16" vgap="14" styleClass="form-grid">
+        <!-- minWidth prevents fields from crunching; parent ScrollPane will horizontal scroll instead -->
+        <GridPane hgap="16" vgap="14" styleClass="form-grid" minWidth="500">
             <padding><Insets top="20" right="24" bottom="20" left="24"/></padding>
 
             <!-- Row 0: First Name | Last Name -->

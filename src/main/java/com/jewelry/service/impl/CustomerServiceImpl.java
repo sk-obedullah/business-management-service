@@ -7,6 +7,9 @@ import com.jewelry.repository.CustomerRepository;
 import com.jewelry.service.CustomerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,15 +17,14 @@ import java.util.Optional;
 /**
  * Production implementation of {@link CustomerService}.
  */
+@Service
+@Transactional
 public class CustomerServiceImpl implements CustomerService {
 
     private static final Logger log = LoggerFactory.getLogger(CustomerServiceImpl.class);
 
-    private final CustomerRepository customerRepository;
-
-    public CustomerServiceImpl(CustomerRepository customerRepository) {
-        this.customerRepository = customerRepository;
-    }
+    @Autowired
+    private CustomerRepository customerRepository;
 
     @Override
     public Customer createCustomer(Customer customer) {
@@ -62,7 +64,7 @@ public class CustomerServiceImpl implements CustomerService {
             throw new IllegalArgumentException("Customer and ID must not be null");
         customerRepository.findById(customer.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Customer", customer.getId()));
-        customerRepository.update(customer);
+        customerRepository.save(customer);
         log.info("Updated customer id={}", customer.getId());
     }
 

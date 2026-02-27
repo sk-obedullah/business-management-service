@@ -1,14 +1,20 @@
 package com.jewelry.controller;
 
-import com.jewelry.config.AppContext;
 import com.jewelry.service.ReportService;
 import com.jewelry.service.ReportService.ReportType;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressIndicator;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,9 +40,13 @@ import java.util.ResourceBundle;
  * Export runs on a daemon background thread (Task) so the UI never freezes
  * during large result-set serialisation.
  */
+@Component
 public class ReportsController implements Initializable {
 
     private static final Logger log = LoggerFactory.getLogger(ReportsController.class);
+
+    @Autowired
+    private ReportService reportService;
     private static final DateTimeFormatter FILE_DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     // ── FXML ─────────────────────────────────────────────────────────────────
@@ -61,11 +71,8 @@ public class ReportsController implements Initializable {
     @FXML
     private ListView<String> previewList;
 
-    private final ReportService reportService;
 
-    public ReportsController() {
-        this.reportService = AppContext.getInstance().getReportService();
-    }
+    
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -109,7 +116,7 @@ public class ReportsController implements Initializable {
                 "📅  From:    " + (dpFrom.getValue() != null ? dpFrom.getValue().toString() : "No lower bound"),
                 "📅  To:      " + (dpTo.getValue() != null ? dpTo.getValue().toString() : "No upper bound"),
                 (type == ReportType.ORDER_REPORT
-                        ? "🏷  Status:  " + cboStatus.getValue()
+                        ? "🏷️  Status:  " + cboStatus.getValue()
                         : ""),
                 "",
                 "Columns exported:",

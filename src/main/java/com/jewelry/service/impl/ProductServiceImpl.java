@@ -7,6 +7,9 @@ import com.jewelry.repository.ProductRepository;
 import com.jewelry.service.ProductService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,15 +30,14 @@ import java.util.Optional;
  * inject {@link ProductRepository} via constructor, remove manual validation
  * in favour of {@code @Valid} + Bean Validation.
  */
+@Service
+@Transactional
 public class ProductServiceImpl implements ProductService {
 
     private static final Logger log = LoggerFactory.getLogger(ProductServiceImpl.class);
 
-    private final ProductRepository productRepository;
-
-    public ProductServiceImpl(ProductRepository productRepository) {
-        this.productRepository = productRepository;
-    }
+    @Autowired
+    private ProductRepository productRepository;
 
     @Override
     public Product createProduct(Product product) {
@@ -80,7 +82,7 @@ public class ProductServiceImpl implements ProductService {
             }
         });
 
-        productRepository.update(product);
+        productRepository.save(product);
         log.info("Updated product id={}", product.getId());
     }
 
@@ -106,7 +108,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<Product> findLowStock(int threshold) {
-        return productRepository.findLowStock(threshold);
+        return productRepository.findByQuantityOnHandLessThanEqual(threshold);
     }
 
     @Override

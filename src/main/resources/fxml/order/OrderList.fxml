@@ -47,15 +47,15 @@
     <!-- ── Table ─────────────────────────────────────────────── -->
     <TableView fx:id="orderTable" VBox.vgrow="ALWAYS" styleClass="table-view">
         <columns>
-            <TableColumn fx:id="colId"       text="#"          prefWidth="60"/>
-            <TableColumn fx:id="colCustomer" text="Customer"   prefWidth="160"/>
-            <TableColumn fx:id="colPhone"    text="Phone"      prefWidth="120"/>
-            <TableColumn fx:id="colDate"     text="Order Date" prefWidth="130"/>
-            <TableColumn fx:id="colStatus"   text="Status"     prefWidth="110"/>
-            <TableColumn fx:id="colItems"    text="Items"      prefWidth="60"/>
-            <TableColumn fx:id="colTotal"    text="Total (₹)"  prefWidth="100"/>
-            <TableColumn fx:id="colNet"      text="Net (₹)"    prefWidth="100"/>
-            <TableColumn fx:id="colNotes"    text="Notes"      prefWidth="200"/>
+            <TableColumn fx:id="colId"       text="Order No."          prefWidth="60"  minWidth="50" />
+            <TableColumn fx:id="colCustomer" text="Customer"   prefWidth="160" minWidth="120" />
+            <TableColumn fx:id="colPhone"    text="Phone"      prefWidth="120" minWidth="100" />
+            <TableColumn fx:id="colDate"     text="Order Date" prefWidth="130" minWidth="100" />
+            <TableColumn fx:id="colStatus"   text="Status"     prefWidth="110" minWidth="90" />
+            <TableColumn fx:id="colItems"    text="Items"      prefWidth="60"  minWidth="50" />
+            <TableColumn fx:id="colTotal"    text="Total (₹)"  prefWidth="100" minWidth="80" />
+            <TableColumn fx:id="colNet"      text="Net (₹)"    prefWidth="100" minWidth="80" />
+            <TableColumn fx:id="colNotes"    text="Notes"      prefWidth="200" minWidth="120" />
         </columns>
         <placeholder>
             <Label text="No orders yet. Click '＋ New Order' to create the first one."

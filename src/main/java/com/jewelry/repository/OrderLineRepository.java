@@ -1,21 +1,24 @@
 package com.jewelry.repository;
 
 import com.jewelry.entity.OrderLine;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 /**
- * Repository contract for {@link OrderLine} persistence.
- * Note: lines are always owned by an Order — no standalone findAll.
+ * Spring Data JPA repository for {@link OrderLine}.
  */
-public interface OrderLineRepository {
+@Repository
+public interface OrderLineRepository extends JpaRepository<OrderLine, Long> {
 
-    /** Inserts a single line and returns it with its generated id. */
-    OrderLine save(OrderLine line);
+    @Query("SELECT ol FROM OrderLine ol WHERE ol.order.id = :orderId")
+    List<OrderLine> findByOrderId(@Param("orderId") Long orderId);
 
-    /** Returns all lines belonging to the given order. */
-    List<OrderLine> findByOrderId(Long orderId);
-
-    /** Deletes all lines for an order (used when cancelling/rewriting). */
-    void deleteByOrderId(Long orderId);
+    @Modifying
+    @Query("DELETE FROM OrderLine ol WHERE ol.order.id = :orderId")
+    void deleteByOrderId(@Param("orderId") Long orderId);
 }
