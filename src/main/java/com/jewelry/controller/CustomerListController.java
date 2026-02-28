@@ -15,7 +15,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TableCell;
@@ -111,11 +111,11 @@ public class CustomerListController implements Initializable {
     // ── Column Setup ─────────────────────────────────────────────────────────
 
     private void configureColumns() {
-        colFullName.setCellValueFactory(new PropertyValueFactory<>("fullName"));
-        colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
-        colPhone.setCellValueFactory(new PropertyValueFactory<>("phone"));
-        colAddress.setCellValueFactory(new PropertyValueFactory<>("address"));
-        colNotes.setCellValueFactory(new PropertyValueFactory<>("notes"));
+        colFullName.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().getFullName()));
+        colEmail.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().email()));
+        colPhone.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().phone()));
+        colAddress.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().address()));
+        colNotes.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().notes()));
 
         // Wrap long text in address / notes columns
         colAddress.setCellFactory(tc -> wrapCell());
@@ -179,8 +179,8 @@ public class CustomerListController implements Initializable {
                     return true;
                 String lower = newVal.toLowerCase();
                 return (dto.getFullName() != null && dto.getFullName().toLowerCase().contains(lower))
-                        || (dto.getEmail() != null && dto.getEmail().toLowerCase().contains(lower))
-                        || (dto.getPhone() != null && dto.getPhone().contains(newVal));
+                        || (dto.email() != null && dto.email().toLowerCase().contains(lower))
+                        || (dto.phone() != null && dto.phone().contains(newVal));
             });
             updateStatus();
         });
@@ -269,7 +269,7 @@ public class CustomerListController implements Initializable {
         confirm.setTitle("Confirm Delete");
         confirm.setHeaderText("Delete customer: " + selected.getFullName() + "?");
         confirm.setContentText(
-                "Email: " + selected.getEmail()
+                "Email: " + selected.email()
                         + "\n\nAll orders for this customer will be blocked from deletion. "
                         + "Ensure no active orders exist before deleting.");
         applyDialogStyle(confirm);
@@ -277,10 +277,10 @@ public class CustomerListController implements Initializable {
         Optional<ButtonType> result = confirm.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
             try {
-                customerService.deleteCustomer(selected.getId());
-                masterList.removeIf(dto -> dto.getId().equals(selected.getId()));
+                customerService.deleteCustomer(selected.id());
+                masterList.removeIf(dto -> dto.id().equals(selected.id()));
                 updateStatus();
-                log.info("Deleted customer id={}", selected.getId());
+                log.info("Deleted customer id={}", selected.id());
                 com.jewelry.util.SnackbarUtil.showSuccess(customerTable, "Customer deleted successfully!");
             } catch (AppException ex) {
                 showError("Delete Failed", ex.getMessage());
@@ -304,7 +304,7 @@ public class CustomerListController implements Initializable {
 
     private void openOrdersForCustomer(CustomerDTO customer) {
         MainLayoutController.navigateTo("/fxml/order/OrderList.fxml", (OrderListController controller) -> {
-            controller.setSearchQuery(customer.getPhone());
+            controller.setSearchQuery(customer.phone());
         });
     }
 

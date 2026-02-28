@@ -125,14 +125,14 @@ public class DashboardController implements Initializable {
 
     private void populateKpiCards(DashboardSummary s) {
         kpiPane.getChildren().setAll(
-                kpiCard("💰 Total Revenue", "₹ " + s.getTotalRevenue().toPlainString(), "#e2b04a"),
-                kpiCard("📈 Gross Profit", "₹ " + s.getTotalProfit().toPlainString(), "#2ecc71"),
-                kpiCard("% Profit Margin", s.getProfitMarginPct() + "%", "#3498db"),
-                kpiCard("📦 Orders Today", String.valueOf(s.getOrdersToday()), "#9b59b6"),
-                kpiCard("⏳ Pending Orders", String.valueOf(s.getPendingOrders()), "#f39c12"),
-                kpiCard("👤 Customers", String.valueOf(s.getTotalCustomers()), "#1abc9c"),
-                kpiCard("💎 Products", String.valueOf(s.getTotalProducts()), "#e67e22"),
-                kpiCard("⚠️ Low Stock", String.valueOf(s.getLowStockCount()), "#e74c3c"));
+                kpiCard("💰 Total Revenue", "₹ " + s.totalRevenue().toPlainString(), "#e2b04a"),
+                kpiCard("📈 Gross Profit", "₹ " + s.totalProfit().toPlainString(), "#2ecc71"),
+                kpiCard("% Profit Margin", s.profitMarginPct() + "%", "#3498db"),
+                kpiCard("📦 Orders Today", String.valueOf(s.ordersToday()), "#9b59b6"),
+                kpiCard("⏳ Pending Orders", String.valueOf(s.pendingOrders()), "#f39c12"),
+                kpiCard("👤 Customers", String.valueOf(s.totalCustomers()), "#1abc9c"),
+                kpiCard("💎 Products", String.valueOf(s.totalProducts()), "#e67e22"),
+                kpiCard("⚠️ Low Stock", String.valueOf(s.lowStockCount()), "#e74c3c"));
     }
 
     private VBox kpiCard(String title, String value, String accentColor) {
@@ -158,10 +158,10 @@ public class DashboardController implements Initializable {
         revenueChart.getData().clear();
         XYChart.Series<String, Number> series = new XYChart.Series<>();
         series.setName("Revenue (₹)");
-        if (s.getMonthlyRevenue().isEmpty()) {
+        if (s.monthlyRevenue().isEmpty()) {
             series.getData().add(new XYChart.Data<>("No data", 0));
         } else {
-            s.getMonthlyRevenue().forEach((month, revenue) -> series.getData().add(new XYChart.Data<>(month, revenue)));
+            s.monthlyRevenue().forEach((month, revenue) -> series.getData().add(new XYChart.Data<>(month, revenue)));
         }
         revenueChart.getData().add(series);
         revenueChart.setLegendVisible(false);
@@ -174,10 +174,10 @@ public class DashboardController implements Initializable {
 
     private void populateStatusPie(DashboardSummary s) {
         statusPieChart.getData().clear();
-        if (s.getOrdersByStatus().isEmpty()) {
+        if (s.ordersByStatus().isEmpty()) {
             statusPieChart.getData().add(new PieChart.Data("No orders", 1));
         } else {
-            s.getOrdersByStatus().forEach((status, count) -> statusPieChart.getData()
+            s.ordersByStatus().forEach((status, count) -> statusPieChart.getData()
                     .add(new PieChart.Data(status + " (" + count + ")", count)));
         }
         statusPieChart.setLegendVisible(true);
@@ -211,8 +211,8 @@ public class DashboardController implements Initializable {
     }
 
     private void populateTopProducts(DashboardSummary s) {
-        if (s.getTopProducts() != null) {
-            topProductsTable.getItems().setAll(s.getTopProducts());
+        if (s.topProducts() != null) {
+            topProductsTable.getItems().setAll(s.topProducts());
         }
     }
 
@@ -220,10 +220,10 @@ public class DashboardController implements Initializable {
 
     private void populateLowStock(DashboardSummary s) {
         lowStockList.getItems().clear();
-        if (s.getLowStockProducts() == null || s.getLowStockProducts().isEmpty()) {
+        if (s.lowStockProducts() == null || s.lowStockProducts().isEmpty()) {
             lowStockList.getItems().add("✅  All products have sufficient stock.");
         } else {
-            s.getLowStockProducts().forEach(p -> lowStockList.getItems().add(
+            s.lowStockProducts().forEach(p -> lowStockList.getItems().add(
                     "⚠️  " + p.name() + " [" + p.sku() + "]  —  " + p.quantityOnHand() + " left"));
         }
     }

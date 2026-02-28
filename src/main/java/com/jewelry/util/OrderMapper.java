@@ -18,40 +18,45 @@ public final class OrderMapper {
     public static OrderDTO toDTO(Order entity) {
         if (entity == null)
             return null;
-        OrderDTO dto = new OrderDTO();
-        dto.setId(entity.getId());
-        dto.setCustomerId(entity.getCustomerId());
-        dto.setCustomerName(entity.getCustomerName());
-        dto.setCustomerPhone(entity.getCustomerPhone());
-        dto.setCustomerEmail(entity.getCustomerEmail());
-        dto.setCustomerAddress(entity.getCustomerAddress());
-        dto.setOrderDate(entity.getOrderDate());
-        dto.setStatus(entity.getStatus());
-        dto.setTotalAmount(entity.getTotalAmount());
-        dto.setDiscount(entity.getDiscount());
-        dto.setNotes(entity.getNotes());
+            
+        java.util.List<OrderLineDTO> lines = new java.util.ArrayList<>();
         if (entity.getLines() != null) {
-            dto.setLines(entity.getLines().stream()
+            lines = entity.getLines().stream()
                     .map(OrderMapper::toLineDTO)
-                    .collect(Collectors.toList()));
+                    .collect(Collectors.toList());
         }
-        return dto;
+        
+        return new OrderDTO(
+                entity.getId(),
+                entity.getCustomerId(),
+                entity.getCustomerName(),
+                entity.getCustomerPhone(),
+                entity.getCustomerEmail(),
+                entity.getCustomerAddress(),
+                entity.getOrderDate(),
+                entity.getStatus(),
+                entity.getTotalAmount(),
+                entity.getDiscount(),
+                entity.getNotes(),
+                lines
+        );
     }
 
     public static OrderLineDTO toLineDTO(OrderLine line) {
-        OrderLineDTO dto = new OrderLineDTO();
-        dto.setProductId(line.getProductId());
-        dto.setProductName(line.getProductName());
-        dto.setProductSku(line.getProductSku());
-        dto.setQuantity(line.getQuantity());
-        dto.setUnitPrice(line.getUnitPrice());
-        dto.setCostPrice(line.getCostPrice());
-        return dto;
+        return new OrderLineDTO(
+                line.getProductId(),
+                line.getProductName(),
+                line.getProductSku(),
+                line.getQuantity(),
+                line.getUnitPrice(),
+                line.getCostPrice(),
+                0 // stockAvailable is transient
+        );
     }
 
     public static OrderLine toLineEntity(OrderLineDTO dto) {
         return new OrderLine(
-                dto.getProductId(), dto.getProductName(), dto.getProductSku(),
-                dto.getQuantity(), dto.getUnitPrice(), dto.getCostPrice());
+                dto.productId(), dto.productName(), dto.productSku(),
+                dto.quantity(), dto.unitPrice(), dto.costPrice());
     }
 }

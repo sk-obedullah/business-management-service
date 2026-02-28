@@ -23,20 +23,20 @@ public final class ProductMapper {
     public static ProductDTO toDTO(Product entity) {
         if (entity == null)
             return null;
-        ProductDTO dto = new ProductDTO();
-        dto.setId(entity.getId());
-        dto.setName(entity.getName());
-        dto.setSku(entity.getSku());
-        dto.setCategory(entity.getCategory());
-        dto.setMetal(entity.getMetal());
-        dto.setPurity(entity.getPurity());
-        dto.setWeightGrams(entity.getWeightGrams());
-        dto.setCostPrice(entity.getCostPrice());
-        dto.setSellingPrice(entity.getSellingPrice());
-        dto.setQuantityOnHand(entity.getQuantityOnHand());
-        dto.setDescription(entity.getDescription());
-        dto.setImagePath(entity.getImagePath());
-        return dto;
+        return new ProductDTO(
+                entity.getId(),
+                entity.getName(),
+                entity.getSku(),
+                entity.getCategory(),
+                entity.getMetal(),
+                entity.getPurity(),
+                entity.getWeightGrams(),
+                entity.getCostPrice(),
+                entity.getSellingPrice(),
+                entity.getQuantityOnHand(),
+                entity.getDescription(),
+                entity.getImagePath()
+        );
     }
 
     /** Converts a DTO back to an entity (for persistence). */
@@ -44,33 +44,33 @@ public final class ProductMapper {
         if (dto == null)
             return null;
         Product entity = new Product();
-        entity.setId(dto.getId());
-        entity.setName(dto.getName());
-        entity.setSku(dto.getSku());
-        entity.setCategory(dto.getCategory());
-        entity.setMetal(dto.getMetal());
-        entity.setPurity(dto.getPurity());
-        entity.setWeightGrams(dto.getWeightGrams());
-        entity.setCostPrice(dto.getCostPrice());
-        entity.setSellingPrice(dto.getSellingPrice());
-        entity.setQuantityOnHand(dto.getQuantityOnHand());
-        entity.setDescription(dto.getDescription());
-        entity.setImagePath(dto.getImagePath());
+        entity.setId(dto.id());
+        entity.setName(dto.name());
+        entity.setSku(dto.sku());
+        entity.setCategory(dto.category());
+        entity.setMetal(dto.metal());
+        entity.setPurity(dto.purity());
+        entity.setWeightGrams(dto.weightGrams());
+        entity.setCostPrice(dto.costPrice());
+        entity.setSellingPrice(dto.sellingPrice());
+        entity.setQuantityOnHand(dto.quantityOnHand());
+        entity.setDescription(dto.description());
+        entity.setImagePath(dto.imagePath());
         return entity;
     }
 
     /** Updates an existing entity in-place from a DTO (for update operations). */
     public static void updateEntity(ProductDTO dto, Product target) {
-        target.setName(dto.getName());
-        target.setSku(dto.getSku());
-        target.setCategory(dto.getCategory());
-        target.setMetal(dto.getMetal());
-        target.setPurity(dto.getPurity());
-        target.setWeightGrams(dto.getWeightGrams());
-        target.setCostPrice(dto.getCostPrice());
-        target.setSellingPrice(dto.getSellingPrice());
-        target.setQuantityOnHand(dto.getQuantityOnHand());
-        target.setDescription(dto.getDescription());
-        target.setImagePath(dto.getImagePath());
+        target.setName(dto.name());
+        target.setSku(dto.sku());
+        target.setCategory(dto.category());
+        target.setMetal(dto.metal());
+        target.setPurity(dto.purity());
+        target.setWeightGrams(dto.weightGrams());
+        target.setCostPrice(dto.costPrice());
+        target.setSellingPrice(dto.sellingPrice());
+        target.setQuantityOnHand(dto.quantityOnHand());
+        target.setDescription(dto.description());
+        target.setImagePath(dto.imagePath());
     }
 }

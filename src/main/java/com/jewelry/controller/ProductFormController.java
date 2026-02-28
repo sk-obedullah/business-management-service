@@ -26,12 +26,9 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ResourceBundle;
-import java.util.UUID;
+import com.jewelry.service.ImageStorageService;
 
 /**
  * Controller for the Product Add/Edit modal dialog (ProductForm.fxml).
@@ -55,6 +52,9 @@ public class ProductFormController implements Initializable {
 
     @Autowired
     private ProductService productService;
+    
+    @Autowired
+    private ImageStorageService imageStorageService;
 
     // ── FXML Bindings ────────────────────────────────────────────────────────
     @FXML
@@ -178,9 +178,8 @@ public class ProductFormController implements Initializable {
                 SnackbarUtil.showSuccess(btnSave, "Product added successfully!");
             } else {
                 // Edit mode
-                dto.setId(currentDTO.getId());
                 productService.updateProduct(ProductMapper.toEntity(dto));
-                log.info("Product updated via form: id={}", dto.getId());
+                log.info("Product updated via form: id={}", dto.id());
                 SnackbarUtil.showSuccess(btnSave, "Product updated successfully!");
             }
 
@@ -200,24 +199,29 @@ public class ProductFormController implements Initializable {
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private void populateFields(ProductDTO dto) {
-        txtName.setText(dto.getName() != null ? dto.getName() : "");
-        txtSku.setText(dto.getSku() != null ? dto.getSku() : "");
-        cboCategory.setValue(dto.getCategory());
-        cboMetal.setValue(dto.getMetal());
-        txtPurity.setText(dto.getPurity() != null ? dto.getPurity() : "");
-        txtWeight.setText(dto.getWeightGrams() != null ? dto.getWeightGrams().toPlainString() : "");
-        txtCostPrice.setText(dto.getCostPrice() != null ? dto.getCostPrice().toPlainString() : "");
-        txtSellingPrice.setText(dto.getSellingPrice() != null ? dto.getSellingPrice().toPlainString() : "");
-        txtQuantity.setText(String.valueOf(dto.getQuantityOnHand()));
-        txtDescription.setText(dto.getDescription() != null ? dto.getDescription() : "");
+        txtName.setText(dto.name() != null ? dto.name() : "");
+        txtSku.setText(dto.sku() != null ? dto.sku() : "");
+        cboCategory.setValue(dto.category());
+        cboMetal.setValue(dto.metal());
+        txtPurity.setText(dto.purity() != null ? dto.purity() : "");
+        txtWeight.setText(dto.weightGrams() != null ? dto.weightGrams().toPlainString() : "");
+        txtCostPrice.setText(dto.costPrice() != null ? dto.costPrice().toPlainString() : "");
+        txtSellingPrice.setText(dto.sellingPrice() != null ? dto.sellingPrice().toPlainString() : "");
+        txtQuantity.setText(String.valueOf(dto.quantityOnHand()));
+        txtDescription.setText(dto.description() != null ? dto.description() : "");
         
-        selectedImagePath = dto.getImagePath();
+        selectedImagePath = dto.imagePath();
         if (selectedImagePath != null && !selectedImagePath.isBlank()) {
-            Path imagePath = Paths.get(System.getProperty("user.dir"), selectedImagePath);
-            if (Files.exists(imagePath)) {
-                updateImagePreview(imagePath.toUri().toString());
+            Image loadedImage = imageStorageService.loadProductImage(selectedImagePath, 140, 140);
+            if (loadedImage != null) {
+                imgPreview.setImage(loadedImage);
+                imgPreview.setVisible(true);
+                imgPreview.setManaged(true);
+                imagePlaceholder.setVisible(false);
+                imagePlaceholder.setManaged(false);
+                btnRemoveImage.setVisible(true);
+                btnRemoveImage.setManaged(true);
             } else {
-                log.warn("Stored image not found at {}", imagePath);
                 onRemoveImage(); // reset UI
             }
         }
@@ -249,73 +253,33 @@ public class ProductFormController implements Initializable {
         String weightStr = safeTrim(txtWeight.getText());
         String qtyStr = safeTrim(txtQuantity.getText());
 
-        // UI-level validation (service validates business rules)
-        if (name.isBlank())
-            throw new IllegalArgumentException("Product name is required.");
-        if (sku.isBlank())
-            throw new IllegalArgumentException("SKU is required.");
-        if (category == null)
-            throw new IllegalArgumentException("Category is required.");
-        if (metal == null)
-            throw new IllegalArgumentException("Metal is required.");
-        if (costStr.isBlank())
-            throw new IllegalArgumentException("Cost price is required.");
-        if (sellStr.isBlank())
-            throw new IllegalArgumentException("Selling price is required.");
-
-        BigDecimal costPrice = parseBigDecimal(costStr, "Cost price");
-        BigDecimal sellingPrice = parseBigDecimal(sellStr, "Selling price");
+        // Values parsing handles string to number parsing only
+        BigDecimal costPrice = costStr.isBlank() ? null : parseBigDecimal(costStr, "Cost price");
+        BigDecimal sellingPrice = sellStr.isBlank() ? null : parseBigDecimal(sellStr, "Selling price");
         BigDecimal weight = weightStr.isBlank() ? null : parseBigDecimal(weightStr, "Weight");
         int qty = qtyStr.isBlank() ? 0 : parseInt(qtyStr, "Quantity");
 
-        if (costPrice.compareTo(BigDecimal.ZERO) < 0)
-            throw new IllegalArgumentException("Cost price cannot be negative.");
-        if (sellingPrice.compareTo(BigDecimal.ZERO) <= 0)
-            throw new IllegalArgumentException("Selling price must be positive.");
+        String finalImagePath = selectedImagePath;
 
-        ProductDTO dto = new ProductDTO();
-        dto.setName(name);
-        dto.setSku(sku);
-        dto.setCategory(category);
-        dto.setMetal(metal);
-        dto.setPurity(purity.isBlank() ? null : purity);
-        dto.setWeightGrams(weight);
-        dto.setCostPrice(costPrice);
-        dto.setSellingPrice(sellingPrice);
-        dto.setQuantityOnHand(qty);
-        dto.setDescription(txtDescription.getText().trim());
-        
         // Handle Image Save
         if (selectedImageFile != null) {
-            try {
-                Path uploadDir = Paths.get(System.getProperty("user.dir"), "data", "images", "products");
-                if (!Files.exists(uploadDir)) {
-                    Files.createDirectories(uploadDir);
-                }
-                
-                String extension = "";
-                String fileName = selectedImageFile.getFileName().toString();
-                int i = fileName.lastIndexOf('.');
-                if (i >= 0) {
-                    extension = fileName.substring(i);
-                }
-                
-                String newFileName = UUID.randomUUID().toString() + extension;
-                Path targetPath = uploadDir.resolve(newFileName);
-                
-                Files.copy(selectedImageFile, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                
-                // Store relative path
-                dto.setImagePath(Paths.get("data", "images", "products", newFileName).toString());
-            } catch (java.io.IOException e) {
-                log.error("Failed to save product image", e);
-                throw new AppException("Failed to save product image: " + e.getMessage());
-            }
-        } else {
-            dto.setImagePath(selectedImagePath); // keep existing if not changed, or null if removed
+            finalImagePath = imageStorageService.saveProductImage(selectedImageFile);
         }
         
-        return dto;
+        return new ProductDTO(
+                currentDTO == null ? null : currentDTO.id(),
+                name,
+                sku,
+                category,
+                metal,
+                purity.isBlank() ? null : purity,
+                weight,
+                costPrice,
+                sellingPrice,
+                qty,
+                txtDescription.getText().trim(),
+                finalImagePath
+        );
     }
 
     private BigDecimal parseBigDecimal(String text, String fieldName) {

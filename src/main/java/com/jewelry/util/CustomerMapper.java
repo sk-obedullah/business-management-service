@@ -19,16 +19,16 @@ public final class CustomerMapper {
     public static CustomerDTO toDTO(Customer entity) {
         if (entity == null)
             return null;
-        CustomerDTO dto = new CustomerDTO();
-        dto.setId(entity.getId());
-        dto.setFirstName(entity.getFirstName());
-        dto.setLastName(entity.getLastName());
-        dto.setEmail(entity.getEmail());
-        dto.setPhone(entity.getPhone());
-        dto.setAddress(entity.getAddress());
-        dto.setNotes(entity.getNotes());
-        dto.setCreatedAt(entity.getCreatedAt());
-        return dto;
+        return new CustomerDTO(
+                entity.getId(),
+                entity.getFirstName(),
+                entity.getLastName(),
+                entity.getEmail(),
+                entity.getPhone(),
+                entity.getAddress(),
+                entity.getNotes(),
+                entity.getCreatedAt()
+        );
     }
 
     /** DTO → Entity (for persistence). */
@@ -36,23 +36,23 @@ public final class CustomerMapper {
         if (dto == null)
             return null;
         Customer entity = new Customer();
-        entity.setId(dto.getId());
-        entity.setFirstName(dto.getFirstName());
-        entity.setLastName(dto.getLastName());
-        entity.setEmail(dto.getEmail());
-        entity.setPhone(dto.getPhone());
-        entity.setAddress(dto.getAddress());
-        entity.setNotes(dto.getNotes());
+        entity.setId(dto.id());
+        entity.setFirstName(dto.firstName());
+        entity.setLastName(dto.lastName());
+        entity.setEmail(dto.email());
+        entity.setPhone(dto.phone());
+        entity.setAddress(dto.address());
+        entity.setNotes(dto.notes());
         return entity;
     }
 
     /** Updates an existing entity in-place (for update operations). */
     public static void updateEntity(CustomerDTO dto, Customer target) {
-        target.setFirstName(dto.getFirstName());
-        target.setLastName(dto.getLastName());
-        target.setEmail(dto.getEmail());
-        target.setPhone(dto.getPhone());
-        target.setAddress(dto.getAddress());
-        target.setNotes(dto.getNotes());
+        target.setFirstName(dto.firstName());
+        target.setLastName(dto.lastName());
+        target.setEmail(dto.email());
+        target.setPhone(dto.phone());
+        target.setAddress(dto.address());
+        target.setNotes(dto.notes());
     }
 }

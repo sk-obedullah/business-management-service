@@ -7,10 +7,10 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 import org.springframework.stereotype.Component;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.jewelry.service.ImageStorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +18,9 @@ import org.slf4j.LoggerFactory;
 public class ProductViewController {
 
     private static final Logger log = LoggerFactory.getLogger(ProductViewController.class);
+
+    @Autowired
+    private ImageStorageService imageStorageService;
 
     @FXML
     private ImageView imgProduct;
@@ -58,18 +61,16 @@ public class ProductViewController {
         this.currentDTO = dto;
         populateFields(dto);
 
-        String imagePathStr = dto.getImagePath();
+        String imagePathStr = dto.imagePath();
         if (imagePathStr != null && !imagePathStr.isBlank()) {
-            Path imagePath = Paths.get(System.getProperty("user.dir"), imagePathStr);
-            if (Files.exists(imagePath)) {
-                javafx.scene.image.Image image = new javafx.scene.image.Image(imagePath.toUri().toString(), 280, 280, true, true);
+            javafx.scene.image.Image image = imageStorageService.loadProductImage(imagePathStr, 280, 280);
+            if (image != null) {
                 imgProduct.setImage(image);
                 imgProduct.setVisible(true);
                 imgProduct.setManaged(true);
                 imagePlaceholderPane.setVisible(false);
                 imagePlaceholderPane.setManaged(false);
             } else {
-                log.warn("Stored image not found at {}", imagePath);
                 showPlaceholder();
             }
         } else {
@@ -93,26 +94,26 @@ public class ProductViewController {
     }
 
     private void populateFields(ProductDTO dto) {
-        lblName.setText(dto.getName() != null ? dto.getName() : "Unknown Product");
-        lblSku.setText(dto.getSku() != null ? dto.getSku() : "N/A");
-        lblCategory.setText(dto.getCategory() != null ? dto.getCategory() : "N/A");
-        lblMetal.setText(dto.getMetal() != null ? dto.getMetal() : "N/A");
-        lblPurity.setText(dto.getPurity() != null && !dto.getPurity().isBlank() ? dto.getPurity() : "N/A");
+        lblName.setText(dto.name() != null ? dto.name() : "Unknown Product");
+        lblSku.setText(dto.sku() != null ? dto.sku() : "N/A");
+        lblCategory.setText(dto.category() != null ? dto.category() : "N/A");
+        lblMetal.setText(dto.metal() != null ? dto.metal() : "N/A");
+        lblPurity.setText(dto.purity() != null && !dto.purity().isBlank() ? dto.purity() : "N/A");
 
-        lblCostPrice.setText(dto.getCostPrice() != null ? "₹ " + dto.getCostPrice().toString() : "₹ 0.00");
-        lblSellingPrice.setText(dto.getSellingPrice() != null ? "₹ " + dto.getSellingPrice().toString() : "₹ 0.00");
+        lblCostPrice.setText(dto.costPrice() != null ? "₹ " + dto.costPrice().toString() : "₹ 0.00");
+        lblSellingPrice.setText(dto.sellingPrice() != null ? "₹ " + dto.sellingPrice().toString() : "₹ 0.00");
 
-        if (dto.getSellingPrice() != null && dto.getCostPrice() != null && dto.getCostPrice().doubleValue() > 0) {
-            double margin = ((dto.getSellingPrice().doubleValue() - dto.getCostPrice().doubleValue())
-                    / dto.getCostPrice().doubleValue()) * 100;
+        if (dto.sellingPrice() != null && dto.costPrice() != null && dto.costPrice().doubleValue() > 0) {
+            double margin = ((dto.sellingPrice().doubleValue() - dto.costPrice().doubleValue())
+                    / dto.costPrice().doubleValue()) * 100;
             lblMargin.setText(String.format("%.1f%%", margin));
         } else {
             lblMargin.setText("N/A");
         }
 
-        lblQuantity.setText(String.valueOf(dto.getQuantityOnHand()) + " Units");
-        lblWeight.setText(dto.getWeightGrams() != null ? dto.getWeightGrams().toString() + "g" : "N/A");
-        lblDescription.setText(dto.getDescription() != null && !dto.getDescription().isBlank() ? dto.getDescription()
+        lblQuantity.setText(String.valueOf(dto.quantityOnHand()) + " Units");
+        lblWeight.setText(dto.weightGrams() != null ? dto.weightGrams().toString() + "g" : "N/A");
+        lblDescription.setText(dto.description() != null && !dto.description().isBlank() ? dto.description()
                 : "No description provided.");
     }
 

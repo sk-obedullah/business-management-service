@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import com.jewelry.util.ValidationUtil;
 
 /**
  * Production implementation of {@link CustomerService}.
@@ -28,11 +29,8 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public Customer createCustomer(Customer customer) {
-        if (customer == null)
-            throw new IllegalArgumentException("Customer must not be null");
-        if (customer.getPhone() == null || customer.getPhone().isBlank()) {
-            throw new IllegalArgumentException("Customer phone number must not be blank");
-        }
+        ValidationUtil.validate(customer);
+
         if (customerRepository.existsByPhone(customer.getPhone())) {
             throw new DuplicateEntityException(
                     "Customer with phone '" + customer.getPhone() + "' already exists.");
@@ -60,8 +58,9 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public void updateCustomer(Customer customer) {
-        if (customer == null || customer.getId() == null)
-            throw new IllegalArgumentException("Customer and ID must not be null");
+        ValidationUtil.validate(customer);
+        if (customer.getId() == null)
+            throw new IllegalArgumentException("Customer ID must not be null for update");
         customerRepository.findById(customer.getId())
                 .orElseThrow(() -> new EntityNotFoundException("Customer", customer.getId()));
         customerRepository.save(customer);

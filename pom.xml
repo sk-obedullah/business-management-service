@@ -94,6 +94,19 @@
             <version>${hibernate.version}</version>
         </dependency>
 
+        <!-- ===== Bean Validation ===== -->
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <version>8.0.1.Final</version>
+        </dependency>
+        <!-- Required EL implementation for Hibernate Validator -->
+        <dependency>
+            <groupId>org.glassfish.expressly</groupId>
+            <artifactId>expressly</artifactId>
+            <version>5.0.0</version>
+        </dependency>
+
         <!-- ===== Logging ===== -->
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -138,7 +151,23 @@
                 </configuration>
             </plugin>
 
+            <!-- Create executable JAR with Launcher -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.jewelry.Launcher</mainClass>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>libs/</classpathPrefix>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
  
+            <!-- Copy all dependencies to libs folder -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -151,10 +180,10 @@
                             <goal>copy-dependencies</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.directory}/dependency</outputDirectory>
-                            <includeGroupIds>org.openjfx</includeGroupIds>
+                            <outputDirectory>${project.build.directory}/libs</outputDirectory>
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>false</overWriteSnapshots>
+                            <overWriteIfNewer>true</overWriteIfNewer>
                         </configuration>
                     </execution>
                 </executions>

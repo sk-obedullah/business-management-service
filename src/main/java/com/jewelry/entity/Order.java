@@ -1,6 +1,8 @@
 package com.jewelry.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -20,6 +22,7 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotNull(message = "Customer is required.")
     @Column(name = "customer_id", nullable = false)
     private Long customerId;
 
@@ -44,6 +47,8 @@ public class Order {
     @Column(nullable = false, length = 30)
     private OrderStatus status;
 
+    @NotNull(message = "Total amount is required.")
+    @PositiveOrZero(message = "Total amount cannot be negative.")
     @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;
 

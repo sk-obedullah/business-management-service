@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import com.jewelry.util.ValidationUtil;
 
 /**
  * Production implementation of {@link OrderService}.
@@ -55,8 +56,6 @@ public class OrderServiceImpl implements OrderService {
     public Order createOrder(Order order) {
         if (order == null)
             throw new IllegalArgumentException("Order must not be null");
-        if (order.getCustomerId() == null)
-            throw new IllegalArgumentException("Customer is required");
         if (order.getLines() == null || order.getLines().isEmpty())
             throw new IllegalArgumentException("Order must have at least one item");
 
@@ -93,6 +92,12 @@ public class OrderServiceImpl implements OrderService {
         // ── 3. Link lines to order for cascade save ───────────────────────────
         for (OrderLine line : order.getLines()) {
             line.setOrder(order);
+        }
+
+        // ── Validate Order ──────────────────────────────────────────────
+        ValidationUtil.validate(order);
+        for (OrderLine line : order.getLines()) {
+            ValidationUtil.validate(line);
         }
 
         // ── 4. Save — Spring @Transactional ensures full rollback on failure ───

@@ -1,6 +1,9 @@
 package com.jewelry.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 
 /**
@@ -34,12 +37,17 @@ public class OrderLine {
     @Transient
     private String productSku;
 
+    @Min(value = 1, message = "Quantity must be at least 1.")
     @Column(nullable = false)
     private int quantity;
 
+    @NotNull(message = "Unit price is required.")
+    @PositiveOrZero(message = "Unit price cannot be negative.")
     @Column(name = "unit_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal unitPrice;
 
+    @NotNull(message = "Cost price is required.")
+    @PositiveOrZero(message = "Cost price cannot be negative.")
     @Column(name = "cost_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal costPrice;
 

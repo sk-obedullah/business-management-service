@@ -17,7 +17,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
@@ -116,22 +116,22 @@ public class OrderListController implements Initializable {
     // ── Column Setup ─────────────────────────────────────────────────────────
 
     private void configureColumns() {
-        colId.setCellValueFactory(new PropertyValueFactory<>("id"));
-        colCustomer.setCellValueFactory(new PropertyValueFactory<>("customerName"));
-        colPhone.setCellValueFactory(new PropertyValueFactory<>("customerPhone"));
-        colItems.setCellValueFactory(new PropertyValueFactory<>("itemCount"));
-        colTotal.setCellValueFactory(new PropertyValueFactory<>("totalAmount"));
-        colNet.setCellValueFactory(new PropertyValueFactory<>("netAmount"));
-        colNotes.setCellValueFactory(new PropertyValueFactory<>("notes"));
+        colId.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().id()));
+        colCustomer.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().customerName()));
+        colPhone.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().customerPhone()));
+        colItems.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().getItemCount()));
+        colTotal.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().totalAmount()));
+        colNet.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().getNetAmount()));
+        colNotes.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().notes()));
 
         // Date column: formatted from LocalDateTime
         colDate.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
-                data.getValue().getOrderDate() != null
-                        ? data.getValue().getOrderDate().format(DATE_FMT)
+                data.getValue().orderDate() != null
+                        ? data.getValue().orderDate().format(DATE_FMT)
                         : ""));
 
         // Status column: displayed as bold colored text
-        colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
+        colStatus.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().status()));
         colStatus.setCellFactory(tc -> new TableCell<>() {
             @Override
             protected void updateItem(OrderStatus status, boolean empty) {
@@ -198,11 +198,11 @@ public class OrderListController implements Initializable {
             String status = statusFilter.getValue();
             filteredList.setPredicate(dto -> {
                 boolean matchesSearch = search.isBlank()
-                        || (dto.getCustomerName() != null && dto.getCustomerName().toLowerCase().contains(search))
-                        || (dto.getCustomerPhone() != null && dto.getCustomerPhone().contains(search))
-                        || (dto.getId() != null && dto.getId().toString().contains(search));
+                        || (dto.customerName() != null && dto.customerName().toLowerCase().contains(search))
+                        || (dto.customerPhone() != null && dto.customerPhone().contains(search))
+                        || (dto.id() != null && dto.id().toString().contains(search));
                 boolean matchesStatus = "All".equals(status)
-                        || (dto.getStatus() != null && dto.getStatus().getDisplayName().equals(status));
+                        || (dto.status() != null && dto.status().getDisplayName().equals(status));
                 return matchesSearch && matchesStatus;
             });
             updateStatus();
@@ -259,7 +259,7 @@ public class OrderListController implements Initializable {
             cboUpdateStatus.setDisable(true);
             cboUpdateStatus.setPromptText("📦 Select order to update");
         } else {
-            OrderStatus current = selected.getStatus();
+            OrderStatus current = selected.status();
             if (current == OrderStatus.COMPLETED || current == OrderStatus.CANCELLED) {
                 cboUpdateStatus.setDisable(true);
                 cboUpdateStatus.setPromptText("Order is " + current.getDisplayName());
@@ -287,7 +287,7 @@ public class OrderListController implements Initializable {
         cboUpdateStatus.setOnAction(e -> {
             OrderStatus newStatus = cboUpdateStatus.getValue();
             OrderDTO sel = orderTable.getSelectionModel().getSelectedItem();
-            if (newStatus != null && sel != null && newStatus != sel.getStatus()) {
+            if (newStatus != null && sel != null && newStatus != sel.status()) {
                 handleStatusUpdate(sel, newStatus);
             }
         });
@@ -295,15 +295,25 @@ public class OrderListController implements Initializable {
 
     private void handleStatusUpdate(OrderDTO selected, OrderStatus newStatus) {
         try {
-            orderService.updateStatus(selected.getId(), newStatus);
-            selected.setStatus(newStatus); // Update DTO locally
-            orderTable.refresh(); // Refresh table view to reflect new status
-
+            orderService.updateStatus(selected.id(), newStatus);
+            
+            // Replace the DTO in masterList with an updated record
+            OrderDTO updated = new OrderDTO(
+                    selected.id(), selected.customerId(), selected.customerName(), selected.customerPhone(),
+                    selected.customerEmail(), selected.customerAddress(), selected.orderDate(),
+                    newStatus, selected.totalAmount(), selected.discount(), selected.notes(), selected.lines()
+            );
+            int idx = masterList.indexOf(selected);
+            if (idx >= 0) {
+                masterList.set(idx, updated);
+            }
+            orderTable.getSelectionModel().select(updated);
+            
             // Defer dropdown update until current JavaFX event processing finishes
             // Prevents IndexOutOfBoundsException when clearing ComboBox items
-            Platform.runLater(() -> updateStatusDropdown(selected));
+            Platform.runLater(() -> updateStatusDropdown(updated));
 
-            log.info("Updated order id={} to {}", selected.getId(), newStatus);
+            log.info("Updated order id={} to {}", updated.id(), newStatus);
         } catch (AppException ex) {
             showError("Update Failed", ex.getMessage());
             Platform.runLater(() -> updateStatusDropdown(selected)); // reset to valid item state
@@ -368,26 +378,26 @@ public class OrderListController implements Initializable {
         if (selected == null)
             return;
 
-        if (selected.getStatus() == OrderStatus.CANCELLED || selected.getStatus() == OrderStatus.COMPLETED) {
+        if (selected.status() == OrderStatus.CANCELLED || selected.status() == OrderStatus.COMPLETED) {
             showError("Cannot Cancel", "Only pending or processing orders can be cancelled.");
             return;
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Cancel Order");
-        confirm.setHeaderText("Cancel Order #" + selected.getId() + "?");
+        confirm.setHeaderText("Cancel Order #" + selected.id() + "?");
         confirm.setContentText(
-                "Customer: " + selected.getCustomerName()
-                        + "\nTotal: ₹" + selected.getTotalAmount()
+                "Customer: " + selected.customerName()
+                        + "\nTotal: ₹" + selected.totalAmount()
                         + "\n\nThis will restore stock for all items in the order.");
         applyDialogStyle(confirm);
 
         Optional<ButtonType> result = confirm.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
             try {
-                orderService.updateStatus(selected.getId(), OrderStatus.CANCELLED);
+                orderService.updateStatus(selected.id(), OrderStatus.CANCELLED);
                 loadOrdersAsync();
-                log.info("Cancelled order id={}", selected.getId());
+                log.info("Cancelled order id={}", selected.id());
                 com.jewelry.util.SnackbarUtil.showSuccess(orderTable, "Order cancelled successfully!");
             } catch (AppException ex) {
                 showError("Cancel Failed", ex.getMessage());
@@ -411,7 +421,7 @@ public class OrderListController implements Initializable {
         Task<Order> task = new Task<>() {
             @Override
             protected Order call() {
-                return orderService.loadWithLines(orderToView.getId());
+                return orderService.loadWithLines(orderToView.id());
             }
         };
 

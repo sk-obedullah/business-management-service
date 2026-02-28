@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import com.jewelry.util.ValidationUtil;
 
 /**
  * Production implementation of {@link ProductService}.
@@ -41,9 +42,8 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Product createProduct(Product product) {
-        validateNotNull(product, "Product");
-        validateNotBlank(product.getName(), "Product name");
-        validateNotBlank(product.getSku(), "Product SKU");
+        ValidationUtil.validate(product);
+
 
         if (productRepository.existsBySku(product.getSku())) {
             throw new DuplicateEntityException(
@@ -67,8 +67,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void updateProduct(Product product) {
-        validateNotNull(product, "Product");
-        validateNotNull(product.getId(), "Product ID");
+        ValidationUtil.validate(product);
+        if (product.getId() == null) {
+            throw new IllegalArgumentException("Product ID must not be null for update");
+        }
 
         // Ensure entity exists
         productRepository.findById(product.getId())
@@ -116,17 +118,5 @@ public class ProductServiceImpl implements ProductService {
         return productRepository.findBySku(sku);
     }
 
-    // ── Validation helpers ───────────────────────────────────────────────────
 
-    private void validateNotNull(Object obj, String fieldName) {
-        if (obj == null) {
-            throw new IllegalArgumentException(fieldName + " must not be null");
-        }
-    }
-
-    private void validateNotBlank(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(fieldName + " must not be blank");
-        }
-    }
 }

@@ -36,10 +36,10 @@ public class ReportServiceImpl implements ReportService {
             LocalDate from, LocalDate to,
             String statusFilter) {
         log.info("Exporting {} to {}", type, targetFile.getAbsolutePath());
-        try (PrintWriter writer = new PrintWriter(
+        try (var writer = new PrintWriter(
                 new BufferedWriter(new FileWriter(targetFile, StandardCharsets.UTF_8)))) {
 
-            int rows = switch (type) {
+            var rows = switch (type) {
                 case ORDER_REPORT    -> exportOrders(writer, from, to, statusFilter);
                 case REVENUE_SUMMARY -> exportRevenueSummary(writer, from, to);
                 case INVENTORY_REPORT -> exportInventory(writer);
@@ -89,12 +89,10 @@ public class ReportServiceImpl implements ReportService {
         writeRow(w, "Order ID", "Customer", "Email", "Order Date", "Status",
                 "Total (₹)", "Discount (₹)", "Net (₹)", "Profit (₹)", "Items", "Notes");
 
-        return executeQuery(sql.toString(), params, rows -> {
-            for (Object[] r : rows) {
-                writeRow(w, str(r[0]), str(r[1]), str(r[2]), str(r[3]), str(r[4]),
-                        str(r[5]), str(r[6]), str(r[7]), str(r[8]), str(r[9]), str(r[10]));
-            }
-        });
+        return executeQuery(sql.toString(), params, rows -> 
+            rows.forEach(r -> writeRow(w, str(r[0]), str(r[1]), str(r[2]), str(r[3]), str(r[4]),
+                        str(r[5]), str(r[6]), str(r[7]), str(r[8]), str(r[9]), str(r[10])))
+        );
     }
 
     // ── Revenue Summary ──────────────────────────────────────────────────────
@@ -118,14 +116,14 @@ public class ReportServiceImpl implements ReportService {
 
         writeRow(w, "Month", "Orders", "Revenue (₹)", "Profit (₹)", "Margin %");
 
-        return executeQuery(sql.toString(), params, rows -> {
-            for (Object[] r : rows) {
-                double revenue = toDouble(r[2]);
-                double profit  = toDouble(r[3]);
-                String margin  = revenue > 0 ? String.format("%.1f", profit / revenue * 100) : "0.0";
+        return executeQuery(sql.toString(), params, rows -> 
+            rows.forEach(r -> {
+                var revenue = toDouble(r[2]);
+                var profit  = toDouble(r[3]);
+                var margin  = revenue > 0 ? String.format("%.1f", profit / revenue * 100) : "0.0";
                 writeRow(w, str(r[0]), str(r[1]), String.valueOf(revenue), String.valueOf(profit), margin);
-            }
-        });
+            })
+        );
     }
 
     // ── Inventory Report ─────────────────────────────────────────────────────
@@ -145,12 +143,10 @@ public class ReportServiceImpl implements ReportService {
                 """;
         writeRow(w, "Product", "SKU", "Category", "Material",
                 "Cost (₹)", "Price (₹)", "Unit Profit (₹)", "Margin %", "Stock", "Stock Value (₹)");
-        return executeQuery(sql, List.of(), rows -> {
-            for (Object[] r : rows) {
-                writeRow(w, str(r[0]), str(r[1]), str(r[2]), str(r[3]),
-                        str(r[4]), str(r[5]), str(r[6]), str(r[7]), str(r[8]), str(r[9]));
-            }
-        });
+        return executeQuery(sql, List.of(), rows -> 
+            rows.forEach(r -> writeRow(w, str(r[0]), str(r[1]), str(r[2]), str(r[3]),
+                        str(r[4]), str(r[5]), str(r[6]), str(r[7]), str(r[8]), str(r[9])))
+        );
     }
 
     // ── Customer History ─────────────────────────────────────────────────────
@@ -175,11 +171,9 @@ public class ReportServiceImpl implements ReportService {
         sql.append(" GROUP BY c.id, c.first_name, c.last_name, c.email, c.phone ORDER BY total_spend DESC");
 
         writeRow(w, "Customer", "Email", "Phone", "Total Orders", "Total Spend (₹)", "Last Order Date");
-        return executeQuery(sql.toString(), params, rows -> {
-            for (Object[] r : rows) {
-                writeRow(w, str(r[0]), str(r[1]), str(r[2]), str(r[3]), str(r[4]), str(r[5]));
-            }
-        });
+        return executeQuery(sql.toString(), params, rows -> 
+            rows.forEach(r -> writeRow(w, str(r[0]), str(r[1]), str(r[2]), str(r[3]), str(r[4]), str(r[5])))
+        );
     }
 
     // ── Execution helpers ─────────────────────────────────────────────────────

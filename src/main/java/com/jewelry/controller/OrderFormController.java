@@ -17,7 +17,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
-import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
@@ -245,17 +245,27 @@ public class OrderFormController implements Initializable {
         // Populate lines
         lineItems.clear();
         for (OrderLine l : order.getLines()) {
-            OrderLineDTO dto = new OrderLineDTO();
-            dto.setProductId(l.getProductId());
-            dto.setQuantity(l.getQuantity());
-            dto.setUnitPrice(l.getUnitPrice());
-            dto.setCostPrice(l.getCostPrice());
+            String pName = null;
+            String pSku = null;
+            int stock = 0;
+            
+            java.util.Optional<Product> optProduct = productService.findById(l.getProductId());
+            if (optProduct.isPresent()) {
+                Product p = optProduct.get();
+                pName = p.getName();
+                pSku = p.getSku();
+                stock = p.getQuantityOnHand();
+            }
 
-            productService.findById(l.getProductId()).ifPresent(p -> {
-                dto.setProductName(p.getName());
-                dto.setProductSku(p.getSku());
-                dto.setStockAvailable(p.getQuantityOnHand());
-            });
+            OrderLineDTO dto = new OrderLineDTO(
+                    l.getProductId(),
+                    pName,
+                    pSku,
+                    l.getQuantity(),
+                    l.getUnitPrice(),
+                    l.getCostPrice(),
+                    stock
+            );
 
             lineItems.add(dto);
         }
@@ -295,11 +305,11 @@ public class OrderFormController implements Initializable {
     // ─────────────────────────────────────────────────────────────────
 
     private void configureLineTable() {
-        colProduct.setCellValueFactory(new PropertyValueFactory<>("productName"));
-        colSku.setCellValueFactory(new PropertyValueFactory<>("productSku"));
-        colQty.setCellValueFactory(new PropertyValueFactory<>("quantity"));
-        colUnitPrice.setCellValueFactory(new PropertyValueFactory<>("unitPrice"));
-        colLineTotal.setCellValueFactory(new PropertyValueFactory<>("lineTotal"));
+        colProduct.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().productName()));
+        colSku.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().productSku()));
+        colQty.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().quantity()));
+        colUnitPrice.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().unitPrice()));
+        colLineTotal.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().getLineTotal()));
 
         colUnitPrice.setCellFactory(tc -> currencyCell());
         colLineTotal.setCellFactory(tc -> currencyCell());
@@ -331,8 +341,8 @@ public class OrderFormController implements Initializable {
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && (!row.isEmpty())) {
                     OrderLineDTO item = row.getItem();
-                    if (item != null && item.getProductId() != null) {
-                        productService.findById(item.getProductId()).ifPresent(product -> {
+                    if (item != null && item.productId() != null) {
+                        productService.findById(item.productId()).ifPresent(product -> {
                             com.jewelry.dto.ProductDTO productDTO = com.jewelry.util.ProductMapper.toDTO(product);
                             MainLayoutController.navigateTo("/fxml/product/ProductView.fxml",
                                     (ProductViewController controller) -> {
@@ -491,7 +501,7 @@ public class OrderFormController implements Initializable {
         }
 
         // Check if same product already in list
-        boolean duplicate = lineItems.stream().anyMatch(l -> l.getProductId().equals(product.getId()));
+        boolean duplicate = lineItems.stream().anyMatch(l -> l.productId().equals(product.getId()));
         if (duplicate) {
             showError("'" + product.getName() + "' is already in the order. Remove it first to change quantity.");
             return;
@@ -502,14 +512,15 @@ public class OrderFormController implements Initializable {
             return;
         }
 
-        OrderLineDTO line = new OrderLineDTO();
-        line.setProductId(product.getId());
-        line.setProductName(product.getName());
-        line.setProductSku(product.getSku());
-        line.setQuantity(qty);
-        line.setUnitPrice(product.getSellingPrice());
-        line.setCostPrice(product.getCostPrice());
-        line.setStockAvailable(product.getQuantityOnHand());
+        OrderLineDTO line = new OrderLineDTO(
+                product.getId(),
+                product.getName(),
+                product.getSku(),
+                qty,
+                product.getSellingPrice(),
+                product.getCostPrice(),
+                product.getQuantityOnHand()
+        );
         lineItems.add(line);
 
         // Reset picker
@@ -523,15 +534,6 @@ public class OrderFormController implements Initializable {
     private void onPlaceOrder() {
         lblError.setVisible(false);
 
-        if (cboCustomer.getValue() == null) {
-            showError("Please select a customer.");
-            return;
-        }
-        if (lineItems.isEmpty()) {
-            showError("Add at least one item to the order.");
-            return;
-        }
-
         try {
             Order order = new Order();
             order.setCustomerId(cboCustomer.getValue().getId());
@@ -544,8 +546,8 @@ public class OrderFormController implements Initializable {
             // Convert DTOs → entities (prices will be re-snapshotted by service)
             List<OrderLine> lines = lineItems.stream().map(dto -> {
                 OrderLine l = new OrderLine();
-                l.setProductId(dto.getProductId());
-                l.setQuantity(dto.getQuantity());
+                l.setProductId(dto.productId());
+                l.setQuantity(dto.quantity());
                 return l;
             }).toList();
             order.setLines(lines);

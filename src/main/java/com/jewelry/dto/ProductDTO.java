@@ -17,28 +17,20 @@ import java.math.BigDecimal;
  * <strong>Spring Boot migration note:</strong> annotate with {@code @Valid}
  * and add Bean Validation annotations ({@code @NotBlank}, {@code @DecimalMin}).
  */
-public class ProductDTO {
-
-    private Long id;
-    private String name;
-    private String sku;
-    private String category;
-    private String metal;
-    private String purity;
-    private BigDecimal weightGrams;
-    private BigDecimal costPrice;
-    private BigDecimal sellingPrice;
-    private int quantityOnHand;
-    private String description;
-    private String imagePath;
-
-    // ── Constructors ─────────────────────────────────────────────────────────
-
-    public ProductDTO() {
-    }
-
-    // ── Computed / derived ───────────────────────────────────────────────────
-
+public record ProductDTO(
+        Long id,
+        String name,
+        String sku,
+        String category,
+        String metal,
+        String purity,
+        BigDecimal weightGrams,
+        BigDecimal costPrice,
+        BigDecimal sellingPrice,
+        int quantityOnHand,
+        String description,
+        String imagePath
+) {
     /**
      * Gross profit per unit in absolute currency.
      * Returns {@link BigDecimal#ZERO} if either price is null.
@@ -63,103 +55,5 @@ public class ProductDTO {
                 .divide(sellingPrice, 4, java.math.RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100))
                 .setScale(2, java.math.RoundingMode.HALF_UP);
-    }
-
-    // ── Getters & Setters ────────────────────────────────────────────────────
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getSku() {
-        return sku;
-    }
-
-    public void setSku(String sku) {
-        this.sku = sku;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public String getMetal() {
-        return metal;
-    }
-
-    public void setMetal(String metal) {
-        this.metal = metal;
-    }
-
-    public String getPurity() {
-        return purity;
-    }
-
-    public void setPurity(String purity) {
-        this.purity = purity;
-    }
-
-    public BigDecimal getWeightGrams() {
-        return weightGrams;
-    }
-
-    public void setWeightGrams(BigDecimal w) {
-        this.weightGrams = w;
-    }
-
-    public BigDecimal getCostPrice() {
-        return costPrice;
-    }
-
-    public void setCostPrice(BigDecimal costPrice) {
-        this.costPrice = costPrice;
-    }
-
-    public BigDecimal getSellingPrice() {
-        return sellingPrice;
-    }
-
-    public void setSellingPrice(BigDecimal p) {
-        this.sellingPrice = p;
-    }
-
-    public int getQuantityOnHand() {
-        return quantityOnHand;
-    }
-
-    public void setQuantityOnHand(int qty) {
-        this.quantityOnHand = qty;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String d) {
-        this.description = d;
-    }
-
-    public String getImagePath() {
-        return imagePath;
-    }
-
-    public void setImagePath(String imagePath) {
-        this.imagePath = imagePath;
     }
 }

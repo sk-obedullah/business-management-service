@@ -1,6 +1,10 @@
 package com.jewelry.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -15,15 +19,19 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Product name is required.")
     @Column(nullable = false)
     private String name;
 
+    @NotBlank(message = "SKU is required.")
     @Column(nullable = false, unique = true)
     private String sku;
 
+    @NotBlank(message = "Category is required.")
     @Column(nullable = false)
     private String category;
 
+    @NotBlank(message = "Metal is required.")
     @Column(nullable = false)
     private String metal;
 
@@ -32,9 +40,13 @@ public class Product {
     @Column(name = "weight_grams", precision = 10, scale = 3)
     private BigDecimal weightGrams;
 
+    @NotNull(message = "Cost price is required.")
+    @PositiveOrZero(message = "Cost price cannot be negative.")
     @Column(name = "cost_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal costPrice;
 
+    @NotNull(message = "Selling price is required.")
+    @Positive(message = "Selling price must be positive.")
     @Column(name = "selling_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal sellingPrice;
 

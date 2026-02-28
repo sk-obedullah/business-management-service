@@ -121,9 +121,8 @@ public class CustomerFormController implements Initializable {
                 SnackbarUtil.showSuccess(btnSave, "Customer added successfully!");
             } else {
                 // Edit mode
-                dto.setId(currentDTO.getId());
                 customerService.updateCustomer(CustomerMapper.toEntity(dto));
-                log.info("Customer updated via form: id={}", dto.getId());
+                log.info("Customer updated via form: id={}", dto.id());
                 SnackbarUtil.showSuccess(btnSave, "Customer updated successfully!");
             }
 
@@ -143,12 +142,12 @@ public class CustomerFormController implements Initializable {
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private void populateFields(CustomerDTO dto) {
-        txtFirstName.setText(dto.getFirstName() != null ? dto.getFirstName() : "");
-        txtLastName.setText(dto.getLastName() != null ? dto.getLastName() : "");
-        txtEmail.setText(dto.getEmail() != null ? dto.getEmail() : "");
-        txtPhone.setText(dto.getPhone() != null ? dto.getPhone() : "");
-        txtAddress.setText(dto.getAddress() != null ? dto.getAddress() : "");
-        txtNotes.setText(dto.getNotes() != null ? dto.getNotes() : "");
+        txtFirstName.setText(dto.firstName() != null ? dto.firstName() : "");
+        txtLastName.setText(dto.lastName() != null ? dto.lastName() : "");
+        txtEmail.setText(dto.email() != null ? dto.email() : "");
+        txtPhone.setText(dto.phone() != null ? dto.phone() : "");
+        txtAddress.setText(dto.address() != null ? dto.address() : "");
+        txtNotes.setText(dto.notes() != null ? dto.notes() : "");
     }
 
     private String safeTrim(String str) {
@@ -163,24 +162,16 @@ public class CustomerFormController implements Initializable {
         String address = safeTrim(txtAddress.getText());
         String notes = safeTrim(txtNotes.getText());
 
-        if (firstName.isBlank())
-            throw new IllegalArgumentException("First name is required.");
-        if (lastName.isBlank())
-            throw new IllegalArgumentException("Last name is required.");
-        if (phone.isBlank())
-            throw new IllegalArgumentException("Phone number is required.");
-
-        if (!email.isBlank() && !email.contains("@"))
-            throw new IllegalArgumentException("Enter a valid email address.");
-
-        CustomerDTO dto = new CustomerDTO();
-        dto.setFirstName(firstName);
-        dto.setLastName(lastName);
-        dto.setEmail(email.isBlank() ? null : email);
-        dto.setPhone(phone);
-        dto.setAddress(address.isBlank() ? null : address);
-        dto.setNotes(notes.isBlank() ? null : notes);
-        return dto;
+        return new CustomerDTO(
+                currentDTO == null ? null : currentDTO.id(),
+                firstName.isBlank() ? null : firstName,
+                lastName.isBlank() ? null : lastName,
+                email.isBlank() ? null : email,
+                phone.isBlank() ? null : phone,
+                address.isBlank() ? null : address,
+                notes.isBlank() ? null : notes,
+                currentDTO == null ? null : currentDTO.createdAt()
+        );
     }
 
     private void showError(String message) {

@@ -16,7 +16,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TableCell;
@@ -122,15 +122,11 @@ public class ProductListController implements Initializable {
     // ── Column Setup ─────────────────────────────────────────────────────────
 
     private void configureColumns() {
-        colName.setCellValueFactory(new PropertyValueFactory<>("name"));
-        colSku.setCellValueFactory(new PropertyValueFactory<>("sku"));
-        colCategory.setCellValueFactory(new PropertyValueFactory<>("category"));
-        colMetal.setCellValueFactory(new PropertyValueFactory<>("metal"));
-        colPurity.setCellValueFactory(new PropertyValueFactory<>("purity"));
-        colQty.setCellValueFactory(new PropertyValueFactory<>("quantityOnHand"));
-        colCost.setCellValueFactory(new PropertyValueFactory<>("costPrice"));
-        colSell.setCellValueFactory(new PropertyValueFactory<>("sellingPrice"));
-        colMargin.setCellValueFactory(new PropertyValueFactory<>("profitMarginPercent"));
+        colName.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().name()));
+        colSku.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().sku()));
+        colCategory.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().category()));
+        colMetal.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().metal()));
+        colMargin.setCellValueFactory(cellData -> new ReadOnlyObjectWrapper<>(cellData.getValue().getProfitMarginPercent()));
 
         // Price columns: format as currency
         colCost.setCellFactory(tc -> currencyCell());
@@ -197,10 +193,10 @@ public class ProductListController implements Initializable {
                 if (newVal == null || newVal.isBlank())
                     return true;
                 String lower = newVal.toLowerCase();
-                return (dto.getName() != null && dto.getName().toLowerCase().contains(lower))
-                        || (dto.getSku() != null && dto.getSku().toLowerCase().contains(lower))
-                        || (dto.getCategory() != null && dto.getCategory().toLowerCase().contains(lower))
-                        || (dto.getMetal() != null && dto.getMetal().toLowerCase().contains(lower));
+                return (dto.name() != null && dto.name().toLowerCase().contains(lower))
+                        || (dto.sku() != null && dto.sku().toLowerCase().contains(lower))
+                        || (dto.category() != null && dto.category().toLowerCase().contains(lower))
+                        || (dto.metal() != null && dto.metal().toLowerCase().contains(lower));
             });
             updateStatus();
         });
@@ -288,17 +284,17 @@ public class ProductListController implements Initializable {
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Confirm Delete");
-        confirm.setHeaderText("Delete product: " + selected.getName() + "?");
-        confirm.setContentText("SKU: " + selected.getSku() + "\nThis action cannot be undone.");
+        confirm.setHeaderText("Delete product: " + selected.name() + "?");
+        confirm.setContentText("SKU: " + selected.sku() + "\nThis action cannot be undone.");
         applyDialogStyle(confirm);
 
         Optional<ButtonType> result = confirm.showAndWait();
         if (result.isPresent() && result.get() == ButtonType.OK) {
             try {
-                productService.deleteProduct(selected.getId());
-                masterList.removeIf(dto -> dto.getId().equals(selected.getId()));
+                productService.deleteProduct(selected.id());
+                masterList.removeIf(dto -> dto.id().equals(selected.id()));
                 updateStatus();
-                log.info("Deleted product id={}", selected.getId());
+                log.info("Deleted product id={}", selected.id());
                 com.jewelry.util.SnackbarUtil.showSuccess(productTable, "Product deleted successfully!");
             } catch (AppException ex) {
                 showError("Delete Failed", ex.getMessage());
@@ -331,7 +327,7 @@ public class ProductListController implements Initializable {
         int total = masterList.size();
         int filtered = filteredList.size();
         int lowStock = (int) masterList.stream()
-                .filter(p -> p.getQuantityOnHand() <= LOW_STOCK_THRESHOLD)
+                .filter(p -> p.quantityOnHand() <= LOW_STOCK_THRESHOLD)
                 .count();
 
         lblStatus.setText(String.format("Showing %d of %d products", filtered, total));

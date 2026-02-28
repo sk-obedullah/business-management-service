@@ -37,8 +37,8 @@ public class CustomerViewController {
     }
 
     private void populateFields(CustomerDTO dto) {
-        String fName = dto.getFirstName() != null ? dto.getFirstName().trim() : "";
-        String lName = dto.getLastName() != null ? dto.getLastName().trim() : "";
+        String fName = dto.firstName() != null ? dto.firstName().trim() : "";
+        String lName = dto.lastName() != null ? dto.lastName().trim() : "";
 
         String fullName = fName + " " + lName;
         if (fullName.isBlank())
@@ -55,11 +55,11 @@ public class CustomerViewController {
             initials = "?";
         lblInitials.setText(initials);
 
-        lblEmail.setText(dto.getEmail() != null && !dto.getEmail().isBlank() ? dto.getEmail() : "N/A");
-        lblPhone.setText(dto.getPhone() != null && !dto.getPhone().isBlank() ? dto.getPhone() : "N/A");
+        lblEmail.setText(dto.email() != null && !dto.email().isBlank() ? dto.email() : "N/A");
+        lblPhone.setText(dto.phone() != null && !dto.phone().isBlank() ? dto.phone() : "N/A");
         lblAddress.setText(
-                dto.getAddress() != null && !dto.getAddress().isBlank() ? dto.getAddress() : "No address on file.");
-        lblNotes.setText(dto.getNotes() != null && !dto.getNotes().isBlank() ? dto.getNotes() : "No additional notes.");
+                dto.address() != null && !dto.address().isBlank() ? dto.address() : "No address on file.");
+        lblNotes.setText(dto.notes() != null && !dto.notes().isBlank() ? dto.notes() : "No additional notes.");
     }
 
     @FXML
