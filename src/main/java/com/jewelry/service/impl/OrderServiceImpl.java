@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -39,9 +40,8 @@ import com.jewelry.util.ValidationUtil;
  */
 @Service
 @Transactional
+@Slf4j
 public class OrderServiceImpl implements OrderService {
-
-    private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
 
     @Autowired
     private OrderRepository orderRepository;

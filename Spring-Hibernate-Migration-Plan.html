@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spring Core + Hibernate Migration Plan</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: #fff; padding: 40px 60px; max-width: 900px; margin: auto; }
+  h1 { font-size: 22px; color: #1a3a5c; border-bottom: 3px solid #1a3a5c; padding-bottom: 10px; margin-bottom: 6px; }
+  h2 { font-size: 16px; color: #1a3a5c; margin: 28px 0 10px; border-left: 4px solid #3a7bd5; padding-left: 10px; }
+  h3 { font-size: 13.5px; color: #333; margin: 16px 0 6px; }
+  p, li { line-height: 1.7; margin-bottom: 4px; }
+  ul, ol { padding-left: 22px; margin-bottom: 10px; }
+  code { background: #f0f4f8; padding: 1px 5px; border-radius: 3px; font-family: Consolas, monospace; font-size: 12px; color: #c0392b; }
+  pre { background: #1e2a38; color: #abb2bf; padding: 14px 18px; border-radius: 6px; font-size: 12px; font-family: Consolas, monospace; margin: 10px 0 14px; overflow-x: auto; line-height: 1.6; }
+  pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 12.5px; }
+  th { background: #1a3a5c; color: #fff; padding: 8px 12px; text-align: left; }
+  td { padding: 7px 12px; border-bottom: 1px solid #dde3ea; }
+  tr:nth-child(even) td { background: #f5f8fc; }
+  .subtitle { color: #555; font-size: 13px; margin-top: 4px; margin-bottom: 20px; }
+  .badge-delete { display: inline-block; background: #fdecea; color: #c0392b; border-radius: 3px; padding: 1px 7px; font-size: 11px; font-weight: bold; }
+  .badge-new { display: inline-block; background: #e8f5e9; color: #27ae60; border-radius: 3px; padding: 1px 7px; font-size: 11px; font-weight: bold; }
+  .badge-modify { display: inline-block; background: #fff8e1; color: #f39c12; border-radius: 3px; padding: 1px 7px; font-size: 11px; font-weight: bold; }
+  hr { border: none; border-top: 1px solid #dde3ea; margin: 24px 0; }
+  @media print {
+    body { padding: 20px 30px; }
+    pre { white-space: pre-wrap; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Spring Core + Hibernate Migration Plan</h1>
+<p class="subtitle">Jewelry Management System &nbsp;|&nbsp; Branch: <code>feature/hibernate-migration</code> &nbsp;|&nbsp; 2026-02-27</p>
+
+<p>Migrate from manual JDBC (HikariCP + hand-written SQL) to <strong>Spring IoC + Spring Data JPA + Hibernate</strong>, keeping the JavaFX UI layer completely untouched. No Spring Boot, no embedded web server.</p>
+
+<hr>
+
+<h2>What Gets Replaced vs Kept</h2>
+<table>
+  <tr><th>Layer</th><th>Current</th><th>After Migration</th></tr>
+  <tr><td>DI Container</td><td><code>AppContext.java</code> (manual)</td><td>Spring <code>ApplicationContext</code></td></tr>
+  <tr><td>DB Config</td><td><code>DatabaseConfig.java</code> + <code>PropertiesLoader.java</code></td><td><code>@Configuration</code> class</td></tr>
+  <tr><td>Repositories</td><td>5 <code>*RepositoryImpl.java</code> files (~900 lines of JDBC)</td><td>4 <code>JpaRepository</code> interfaces (5 lines each)</td></tr>
+  <tr><td>Services</td><td>Manual <code>new</code> + try/catch transactions</td><td><code>@Service</code> + <code>@Transactional</code></td></tr>
+  <tr><td>Entities</td><td>Plain POJOs</td><td><code>@Entity</code> annotated JPA classes</td></tr>
+  <tr><td>Controllers (JavaFX)</td><td>Pull from <code>AppContext.getInstance()</code></td><td><code>@Autowired</code> via Spring factory</td></tr>
+  <tr><td>FXML loading</td><td><code>getClass().getResource(...)</code></td><td><strong>Unchanged</strong></td></tr>
+</table>
+
+<hr>
+
+<h2>Phase 1 — Dependencies (pom.xml)</h2>
+
+<h3>Add</h3>
+<pre><code>&lt;!-- Spring Context (IoC / DI) --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-context&lt;/artifactId&gt;
+  &lt;version&gt;6.2.3&lt;/version&gt;
+&lt;/dependency&gt;
+
+&lt;!-- Spring ORM (Hibernate integration) --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-orm&lt;/artifactId&gt;
+  &lt;version&gt;6.2.3&lt;/version&gt;
+&lt;/dependency&gt;
+
+&lt;!-- Spring Data JPA --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.data&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-data-jpa&lt;/artifactId&gt;
+  &lt;version&gt;3.4.2&lt;/version&gt;
+&lt;/dependency&gt;
+
+&lt;!-- Hibernate ORM --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;org.hibernate.orm&lt;/groupId&gt;
+  &lt;artifactId&gt;hibernate-core&lt;/artifactId&gt;
+  &lt;version&gt;6.6.8.Final&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+
+<h3>Remove</h3>
+<ul>
+  <li><code>HikariCP</code> — Hibernate manages pooling internally (or keep it as the DataSource provider)</li>
+</ul>
+
+<hr>
+
+<h2>Phase 2 — Spring Configuration (config/)</h2>
+
+<table>
+  <tr><th>Action</th><th>File</th><th>Reason</th></tr>
+  <tr><td><span class="badge-delete">DELETE</span></td><td><code>AppContext.java</code></td><td>Replaced by Spring ApplicationContext</td></tr>
+  <tr><td><span class="badge-delete">DELETE</span></td><td><code>DatabaseConfig.java</code></td><td>Replaced by @Configuration class</td></tr>
+  <tr><td><span class="badge-delete">DELETE</span></td><td><code>PropertiesLoader.java</code></td><td>Spring reads application.properties natively</td></tr>
+  <tr><td><span class="badge-new">NEW</span></td><td><code>PersistenceConfig.java</code></td><td>@Configuration for DataSource, EntityManagerFactory, TransactionManager</td></tr>
+  <tr><td><span class="badge-new">NEW</span></td><td><code>SpringContext.java</code></td><td>Tiny holder exposing Spring beans to JavaFX</td></tr>
+</table>
+
+<pre><code>@Configuration
+@EnableJpaRepositories("com.jewelry.repository")
+@EnableTransactionManagement
+@PropertySource("classpath:application.properties")
+public class PersistenceConfig {
+
+    @Bean public DataSource dataSource(...) { /* H2 config */ }
+
+    @Bean
+    public LocalContainerEntityManagerFactoryBean entityManagerFactory(...) {
+        // Hibernate scans com.jewelry.entity
+    }
+
+    @Bean
+    public PlatformTransactionManager transactionManager(...) { ... }
+}</code></pre>
+
+<pre><code>public class SpringContext {
+    private static ApplicationContext ctx;
+
+    public static void init() {
+        ctx = new AnnotationConfigApplicationContext(PersistenceConfig.class);
+    }
+
+    public static &lt;T&gt; T getBean(Class&lt;T&gt; type) {
+        return ctx.getBean(type);
+    }
+}</code></pre>
+
+<hr>
+
+<h2>Phase 3 — Entities (entity/)</h2>
+<p>Add JPA annotations only — <strong>no logic changes</strong>.</p>
+
+<table>
+  <tr><th>Action</th><th>File</th><th>Key Annotations</th></tr>
+  <tr><td><span class="badge-modify">MODIFY</span></td><td><code>Product.java</code></td><td><code>@Entity @Table(name="product") @Id @GeneratedValue @Column</code></td></tr>
+  <tr><td><span class="badge-modify">MODIFY</span></td><td><code>Customer.java</code></td><td><code>@Entity @Table(name="customer") @Id @GeneratedValue @Column</code></td></tr>
+  <tr><td><span class="badge-modify">MODIFY</span></td><td><code>Order.java</code></td><td>Same + <code>@OneToMany(mappedBy="order", cascade=ALL)</code> for order lines</td></tr>
+  <tr><td><span class="badge-modify">MODIFY</span></td><td><code>OrderLine.java</code></td><td>Same + <code>@ManyToOne @JoinColumn(name="order_id")</code></td></tr>
+</table>
+
+<pre><code>@Entity
+@Table(name = "product")
+public class Product {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String sku;
+
+    // all existing fields and methods stay the same...
+}</code></pre>
+
+<hr>
+
+<h2>Phase 4 — Repositories (repository/)</h2>
+
+<table>
+  <tr><th>Action</th><th>File</th></tr>
+  <tr><td><span class="badge-delete">DELETE</span></td><td><code>impl/AbstractJdbcRepository.java</code>, <code>impl/ProductRepositoryImpl.java</code>, <code>impl/CustomerRepositoryImpl.java</code>, <code>impl/OrderRepositoryImpl.java</code>, <code>impl/OrderLineRepositoryImpl.java</code></td></tr>
+  <tr><td><span class="badge-delete">DELETE</span></td><td><code>BaseRepository.java</code></td></tr>
+  <tr><td><span class="badge-modify">MODIFY</span></td><td><code>ProductRepository.java</code>, <code>CustomerRepository.java</code>, <code>OrderRepository.java</code>, <code>OrderLineRepository.java</code></td></tr>
+</table>
+
+<pre><code>// Before: 200-line JDBC impl class
+// After: 5-line interface
+public interface ProductRepository extends JpaRepository&lt;Product, Long&gt; {
+    boolean existsBySku(String sku);
+    Optional&lt;Product&gt; findBySku(String sku);
+    List&lt;Product&gt; findByQuantityOnHandLessThanEqual(int threshold);
+}
+
+public interface OrderRepository extends JpaRepository&lt;Order, Long&gt; {
+    List&lt;Order&gt; findByCustomerIdOrderByCreatedAtDesc(Long customerId);
+    List&lt;Order&gt; findByStatusOrderByCreatedAtDesc(OrderStatus status);
+}</code></pre>
+
+<hr>
+
+<h2>Phase 5 — Services (service/impl/)</h2>
+
+<table>
+  <tr><th>Action</th><th>File</th><th>Change</th></tr>
+  <tr><td><span class="badge-modify">MODIFY</span></td><td><code>ProductServiceImpl.java</code></td><td><code>@Service @Transactional</code>, inject via <code>@Autowired</code>, use <code>repo.save() / findAll()</code></td></tr>
+  <tr><td><span class="badge-modify">MODIFY</span></td><td><code>CustomerServiceImpl.java</code></td><td>Same pattern</td></tr>
+  <tr><td><span class="badge-modify">MODIFY</span></td><td><code>OrderServiceImpl.java</code></td><td>Same + <code>@Transactional</code> handles rollback automatically</td></tr>
+  <tr><td><span class="badge-modify">MODIFY</span></td><td><code>DashboardServiceImpl.java</code></td><td>Keep native SQL queries via injected <code>EntityManager.createNativeQuery()</code></td></tr>
+  <tr><td><span class="badge-modify">MODIFY</span></td><td><code>ReportServiceImpl.java</code></td><td>Same as Dashboard</td></tr>
+</table>
+
+<pre><code>// Before
+public class ProductServiceImpl implements ProductService {
+    private final ProductRepository repo;
+    public ProductServiceImpl(ProductRepository repo) { this.repo = repo; }
+}
+
+// After
+@Service
+@Transactional
+public class ProductServiceImpl implements ProductService {
+    @Autowired private ProductRepository repo;
+
+    @Override
+    public List&lt;ProductDTO&gt; getAll() {
+        return repo.findAll().stream().map(mapper::toDto).toList();
+    }
+}</code></pre>
+
+<hr>
+
+<h2>Phase 6 — JavaFX Bridge (MainApp.java + Controllers)</h2>
+
+<h3>MainApp.java</h3>
+<pre><code>@Override
+public void init() {
+    SpringContext.init(); // Boot Spring once before any FXML loads
+}
+
+@Override
+public void start(Stage stage) throws Exception {
+    FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/MainLayout.fxml"));
+    // Tell JavaFX: get controllers FROM Spring (enables @Autowired in controllers)
+    loader.setControllerFactory(SpringContext::getBean);
+    Parent root = loader.load();
+    // ... rest unchanged
+}</code></pre>
+
+<h3>All 9 JavaFX Controllers</h3>
+<pre><code>// Add @Component, replace AppContext.getInstance().getXxxService() with @Autowired
+@Component
+public class ProductListController {
+
+    @Autowired private ProductService productService; // was: AppContext.getInstance().getProductService()
+
+    // rest of the controller is UNCHANGED
+}</code></pre>
+
+<hr>
+
+<h2>Files Summary</h2>
+<table>
+  <tr><th>Action</th><th>Count</th><th>Files</th></tr>
+  <tr><td><span class="badge-delete">DELETE</span></td><td>7</td><td>AppContext, DatabaseConfig, PropertiesLoader, BaseRepository, AbstractJdbcRepository, 4× *RepositoryImpl</td></tr>
+  <tr><td><span class="badge-new">NEW</span></td><td>2</td><td>PersistenceConfig.java, SpringContext.java</td></tr>
+  <tr><td><span class="badge-modify">MODIFY — annotations only</span></td><td>4</td><td>Product, Customer, Order, OrderLine entities</td></tr>
+  <tr><td><span class="badge-modify">MODIFY — extend JpaRepository</span></td><td>4</td><td>All 4 repository interfaces</td></tr>
+  <tr><td><span class="badge-modify">MODIFY — @Service + @Transactional</span></td><td>5</td><td>All 5 service impls</td></tr>
+  <tr><td><span class="badge-modify">MODIFY — @Component + @Autowired</span></td><td>9</td><td>All 9 JavaFX controllers</td></tr>
+  <tr><td><span class="badge-modify">MODIFY — Spring bridge</span></td><td>1</td><td>MainApp.java</td></tr>
+  <tr><td><span class="badge-modify">MODIFY — new deps</span></td><td>1</td><td>pom.xml</td></tr>
+</table>
+
+<hr>
+
+<h2>Verification Plan</h2>
+<ol>
+  <li><strong>Compile</strong> — <code>mvn compile</code> with zero errors</li>
+  <li><strong>Schema auto-init</strong> — Delete <code>jewelry_db.mv.db</code>, launch app → Hibernate creates tables automatically</li>
+  <li><strong>Dashboard</strong> — Click Dashboard, verify revenue/profit figures match seed data</li>
+  <li><strong>CRUD</strong> — Create, edit, delete a Product, Customer, and Order</li>
+  <li><strong>Transactions</strong> — Create an order, verify stock deducted atomically; cancel it, verify stock restored</li>
+</ol>
+
+</body>
+</html>

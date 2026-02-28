@@ -343,7 +343,7 @@ public class OrderFormController implements Initializable {
                     OrderLineDTO item = row.getItem();
                     if (item != null && item.productId() != null) {
                         productService.findById(item.productId()).ifPresent(product -> {
-                            com.jewelry.dto.ProductDTO productDTO = com.jewelry.util.ProductMapper.toDTO(product);
+                            com.jewelry.dto.ProductDTO productDTO = com.jewelry.util.ProductMapper.INSTANCE.toDTO(product);
                             MainLayoutController.navigateTo("/fxml/product/ProductView.fxml",
                                     (ProductViewController controller) -> {
                                         controller.initData(productDTO);

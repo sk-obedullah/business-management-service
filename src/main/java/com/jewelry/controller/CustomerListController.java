@@ -216,7 +216,7 @@ public class CustomerListController implements Initializable {
 
         task.setOnSucceeded(e -> {
             List<Customer> entities = task.getValue();
-            masterList.setAll(entities.stream().map(CustomerMapper::toDTO).toList());
+            masterList.setAll(entities.stream().map(CustomerMapper.INSTANCE::toDTO).toList());
             updateStatus();
             loadingIndicator.setVisible(false);
             log.info("Loaded {} customers", masterList.size());

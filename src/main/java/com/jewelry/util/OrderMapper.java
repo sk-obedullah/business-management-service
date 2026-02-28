@@ -7,56 +7,25 @@ import com.jewelry.entity.OrderLine;
 
 import java.util.stream.Collectors;
 
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.factory.Mappers;
+
 /**
- * Stateless mapper between Order/OrderLine entities and DTOs.
+ * MapStruct mapper between Order/OrderLine entities and DTOs.
  */
-public final class OrderMapper {
+@Mapper
+public interface OrderMapper {
 
-    private OrderMapper() {
-    }
+    OrderMapper INSTANCE = Mappers.getMapper(OrderMapper.class);
 
-    public static OrderDTO toDTO(Order entity) {
-        if (entity == null)
-            return null;
-            
-        java.util.List<OrderLineDTO> lines = new java.util.ArrayList<>();
-        if (entity.getLines() != null) {
-            lines = entity.getLines().stream()
-                    .map(OrderMapper::toLineDTO)
-                    .collect(Collectors.toList());
-        }
-        
-        return new OrderDTO(
-                entity.getId(),
-                entity.getCustomerId(),
-                entity.getCustomerName(),
-                entity.getCustomerPhone(),
-                entity.getCustomerEmail(),
-                entity.getCustomerAddress(),
-                entity.getOrderDate(),
-                entity.getStatus(),
-                entity.getTotalAmount(),
-                entity.getDiscount(),
-                entity.getNotes(),
-                lines
-        );
-    }
+    OrderDTO toDTO(Order entity);
 
-    public static OrderLineDTO toLineDTO(OrderLine line) {
-        return new OrderLineDTO(
-                line.getProductId(),
-                line.getProductName(),
-                line.getProductSku(),
-                line.getQuantity(),
-                line.getUnitPrice(),
-                line.getCostPrice(),
-                0 // stockAvailable is transient
-        );
-    }
+    @Mapping(target = "stockAvailable", ignore = true)
+    OrderLineDTO toLineDTO(OrderLine line);
 
-    public static OrderLine toLineEntity(OrderLineDTO dto) {
-        return new OrderLine(
-                dto.productId(), dto.productName(), dto.productSku(),
-                dto.quantity(), dto.unitPrice(), dto.costPrice());
-    }
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "order", ignore = true)
+    @Mapping(target = "product", ignore = true)
+    OrderLine toLineEntity(OrderLineDTO dto);
 }

@@ -334,7 +334,7 @@ public class OrderListController implements Initializable {
         };
 
         task.setOnSucceeded(e -> {
-            masterList.setAll(task.getValue().stream().map(OrderMapper::toDTO).toList());
+            masterList.setAll(task.getValue().stream().map(OrderMapper.INSTANCE::toDTO).toList());
             updateStatus();
             loadingIndicator.setVisible(false);
         });

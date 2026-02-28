@@ -173,12 +173,12 @@ public class ProductFormController implements Initializable {
 
             if (currentDTO == null) {
                 // Add mode
-                Product created = productService.createProduct(ProductMapper.toEntity(dto));
+                Product created = productService.createProduct(ProductMapper.INSTANCE.toEntity(dto));
                 log.info("Product created via form: id={}", created.getId());
                 SnackbarUtil.showSuccess(btnSave, "Product added successfully!");
             } else {
                 // Edit mode
-                productService.updateProduct(ProductMapper.toEntity(dto));
+                productService.updateProduct(ProductMapper.INSTANCE.toEntity(dto));
                 log.info("Product updated via form: id={}", dto.id());
                 SnackbarUtil.showSuccess(btnSave, "Product updated successfully!");
             }

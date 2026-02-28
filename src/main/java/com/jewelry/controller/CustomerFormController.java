@@ -116,12 +116,12 @@ public class CustomerFormController implements Initializable {
 
             if (currentDTO == null) {
                 // Add mode
-                Customer created = customerService.createCustomer(CustomerMapper.toEntity(dto));
+                Customer created = customerService.createCustomer(CustomerMapper.INSTANCE.toEntity(dto));
                 log.info("Customer created via form: id={}", created.getId());
                 SnackbarUtil.showSuccess(btnSave, "Customer added successfully!");
             } else {
                 // Edit mode
-                customerService.updateCustomer(CustomerMapper.toEntity(dto));
+                customerService.updateCustomer(CustomerMapper.INSTANCE.toEntity(dto));
                 log.info("Customer updated via form: id={}", dto.id());
                 SnackbarUtil.showSuccess(btnSave, "Customer updated successfully!");
             }

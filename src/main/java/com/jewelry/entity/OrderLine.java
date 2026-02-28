@@ -6,6 +6,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 /**
  * A single line item inside an {@link Order}.
  *
@@ -15,6 +21,11 @@ import java.math.BigDecimal;
  */
 @Entity
 @Table(name = "order_line")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class OrderLine {
 
     @Id
@@ -51,20 +62,6 @@ public class OrderLine {
     @Column(name = "cost_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal costPrice;
 
-    // ── Constructors ──────────────────────────────────────────────────────────
-
-    public OrderLine() {}
-
-    public OrderLine(Long productId, String productName, String productSku,
-            int quantity, BigDecimal unitPrice, BigDecimal costPrice) {
-        this.productId = productId;
-        this.productName = productName;
-        this.productSku = productSku;
-        this.quantity = quantity;
-        this.unitPrice = unitPrice;
-        this.costPrice = costPrice;
-    }
-
     // ── Derived ───────────────────────────────────────────────────────────────
 
     public BigDecimal getLineTotal() {
@@ -76,43 +73,4 @@ public class OrderLine {
         if (unitPrice == null || costPrice == null) return BigDecimal.ZERO;
         return unitPrice.subtract(costPrice).multiply(BigDecimal.valueOf(quantity));
     }
-
-    // ── Getters & Setters ─────────────────────────────────────────────────────
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public Order getOrder() { return order; }
-    public void setOrder(Order order) { this.order = order; }
-
-    public Product getProduct() { return product; }
-    public void setProduct(Product product) {
-        this.product = product;
-        if (product != null) {
-            this.productId = product.getId();
-            this.productName = product.getName();
-            this.productSku = product.getSku();
-        }
-    }
-
-    public Long getOrderId() { return order != null ? order.getId() : productId; }
-    public void setOrderId(Long orderId) { /* managed via setOrder() */ }
-
-    public Long getProductId() { return product != null ? product.getId() : productId; }
-    public void setProductId(Long productId) { this.productId = productId; }
-
-    public String getProductName() { return product != null ? product.getName() : productName; }
-    public void setProductName(String name) { this.productName = name; }
-
-    public String getProductSku() { return product != null ? product.getSku() : productSku; }
-    public void setProductSku(String sku) { this.productSku = sku; }
-
-    public int getQuantity() { return quantity; }
-    public void setQuantity(int quantity) { this.quantity = quantity; }
-
-    public BigDecimal getUnitPrice() { return unitPrice; }
-    public void setUnitPrice(BigDecimal p) { this.unitPrice = p; }
-
-    public BigDecimal getCostPrice() { return costPrice; }
-    public void setCostPrice(BigDecimal c) { this.costPrice = c; }
 }

@@ -233,7 +233,7 @@ public class ProductListController implements Initializable {
 
         task.setOnSucceeded(e -> {
             List<Product> entities = task.getValue();
-            masterList.setAll(entities.stream().map(ProductMapper::toDTO).toList());
+            masterList.setAll(entities.stream().map(ProductMapper.INSTANCE::toDTO).toList());
             updateStatus();
             loadingIndicator.setVisible(false);
             log.info("Loaded {} products", masterList.size());

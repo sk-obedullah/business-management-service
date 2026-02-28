@@ -8,6 +8,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 /**
  * Represents a customer order.
  *
@@ -16,6 +22,11 @@ import java.util.List;
  */
 @Entity
 @Table(name = "\"order\"")   // "order" is a reserved SQL keyword — must be quoted
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Order {
 
     @Id
@@ -65,6 +76,7 @@ public class Order {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @Builder.Default
     private List<OrderLine> lines = new ArrayList<>();
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -92,10 +104,6 @@ public class Order {
         }
     }
 
-    // ── Constructors ──────────────────────────────────────────────────────────
-
-    public Order() {}
-
     // ── Derived ───────────────────────────────────────────────────────────────
 
     public BigDecimal getNetAmount() {
@@ -113,48 +121,4 @@ public class Order {
     public BigDecimal getGrossProfit() {
         return getNetAmount().subtract(getTotalCost());
     }
-
-    // ── Getters & Setters ─────────────────────────────────────────────────────
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public Long getCustomerId() { return customerId; }
-    public void setCustomerId(Long customerId) { this.customerId = customerId; }
-
-    public String getCustomerName() { return customerName; }
-    public void setCustomerName(String name) { this.customerName = name; }
-
-    public String getCustomerPhone() { return customerPhone; }
-    public void setCustomerPhone(String phone) { this.customerPhone = phone; }
-
-    public String getCustomerEmail() { return customerEmail; }
-    public void setCustomerEmail(String email) { this.customerEmail = email; }
-
-    public String getCustomerAddress() { return customerAddress; }
-    public void setCustomerAddress(String address) { this.customerAddress = address; }
-
-    public LocalDateTime getOrderDate() { return orderDate; }
-    public void setOrderDate(LocalDateTime d) { this.orderDate = d; }
-
-    public OrderStatus getStatus() { return status; }
-    public void setStatus(OrderStatus status) { this.status = status; }
-
-    public BigDecimal getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(BigDecimal total) { this.totalAmount = total; }
-
-    public BigDecimal getDiscount() { return discount; }
-    public void setDiscount(BigDecimal discount) { this.discount = discount; }
-
-    public String getNotes() { return notes; }
-    public void setNotes(String notes) { this.notes = notes; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime c) { this.createdAt = c; }
-
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime u) { this.updatedAt = u; }
-
-    public List<OrderLine> getLines() { return lines; }
-    public void setLines(List<OrderLine> lines) { this.lines = lines; }
 }
